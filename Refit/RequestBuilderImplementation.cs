@@ -28,6 +28,7 @@ namespace Refit
         readonly Type targetType;
         readonly Dictionary<string, RestMethodInfo> interfaceHttpMethods;
         readonly RefitSettings settings;
+        private static string ContentDisposition = "form-data";
 
         public RequestBuilderImplementation(Type targetInterface, RefitSettings refitSettings = null)
         {
@@ -213,14 +214,14 @@ namespace Refit
                 #region NameAttribute
                 if (string.IsNullOrEmpty(name))
                 {
-                    streamContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
+                    streamContent.Headers.ContentDisposition = new ContentDispositionHeaderValue(ContentDisposition)
                     {
                         FileName = itemName
                     };
                 }
                 else
                 {
-                    streamContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
+                    streamContent.Headers.ContentDisposition = new ContentDispositionHeaderValue(ContentDisposition)
                     {
                         FileName = itemName,
                         Name = name
@@ -243,14 +244,14 @@ namespace Refit
                 #region NameAttribute
                 if (string.IsNullOrEmpty(name))
                 {
-                    fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
+                    fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue(ContentDisposition)
                     {
                         FileName = fileInfoValue.Name
                     };
                 }
                 else
                 {
-                    fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
+                    fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue(ContentDisposition)
                     {
                         FileName = fileInfoValue.Name,
                         Name = name
@@ -267,14 +268,14 @@ namespace Refit
                 #region NameAttribute
                 if (string.IsNullOrEmpty(name))
                 {
-                    fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
+                    fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue(ContentDisposition)
                     {
                         FileName = itemName
                     };
                 }
                 else
                 {
-                    fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
+                    fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue(ContentDisposition)
                     {
                         FileName = itemName,
                         Name = name
