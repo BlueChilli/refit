@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using System.IO;
 using HttpUtility = System.Web.HttpUtility;
 using System.Threading;
+using System.Web;
 
 namespace Refit
 {
@@ -217,6 +218,7 @@ namespace Refit
                     streamContent.Headers.ContentDisposition = new ContentDispositionHeaderValue(ContentDisposition)
                     {
                         FileName = itemName
+
                     };
                 }
                 else
@@ -227,7 +229,11 @@ namespace Refit
                         Name = name
                     };
                 }
+
+                streamContent.Headers.ContentType = new MediaTypeHeaderValue(MimeMapping.GetMimeMapping(itemName));
+
                 #endregion
+
                 multiPartContent.Add(streamContent);
                 return;
             }
@@ -257,6 +263,7 @@ namespace Refit
                         Name = name
                     };
                 }
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(MimeMapping.GetMimeMapping(fileInfoValue.Name));
                 #endregion
                 multiPartContent.Add(fileContent);
                 return;
@@ -281,6 +288,7 @@ namespace Refit
                         Name = name
                     };
                 }
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(MimeMapping.GetMimeMapping(itemName));
                 #endregion
                 multiPartContent.Add(fileContent);
                 return;
