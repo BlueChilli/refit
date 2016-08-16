@@ -10,9 +10,10 @@ using System.Text.RegularExpressions;
 using System.Text;
 using Newtonsoft.Json;
 using System.IO;
-using HttpUtility = System.Web.HttpUtility;
 using System.Threading;
 using System.Web;
+
+using HttpUtility = System.Web.HttpUtility;
 
 namespace Refit
 {

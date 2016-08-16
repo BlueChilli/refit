@@ -1,8 +1,50 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+<<<<<<< HEAD
+    <metadata>
+        <id>refit</id>
+        <version>2.4.4</version>
+        <title>Refit</title>
+        <authors>Paul Betts,Refit contributors</authors>
+        <owners>Paul Betts</owners>
+        <licenseUrl>https://github.com/xpaulbettsx/refit/blob/master/COPYING</licenseUrl>
+        <projectUrl>https://github.com/xpaulbettsx/refit</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>The automatic type-safe REST library for Xamarin and .NET</description>
+        <summary>The automatic type-safe REST library for Xamarin and .NET</summary>
+
+        <dependencies>
+            <group>
+                <dependency id="Newtonsoft.Json" version="6.0.5" />
+            </group>
+<!--            <group targetFramework="WindowsPhone8.0">
+                <dependency id="Microsoft.Net.Http" version="2.2.28" />
+                <dependency id="Newtonsoft.Json" version="6.0.5" /> 
+            </group> -->
+        </dependencies>
+        <frameworkAssemblies>
+            <frameworkAssembly assemblyName="System.Net.Http" targetFramework="portable-net45+monoandroid+xamarin.ios10" />
+        </frameworkAssemblies>
+    </metadata>
+    <files>
+        <file src="targets\*.*" target="build\portable-net45+netcore45+wp8+wpa81+monoandroid+xamarin.ios10" />
+        <file src="..\InterfaceStubGenerator\bin\Release\*.exe" target="tools" />
+        <file src="..\InterfaceStubGenerator\bin\Release\*.dll" target="tools" />
+        <file src="..\InterfaceStubGenerator\bin\Release\*.mustache" target="tools" />
+
+        <file src="bin\Release\MonoAndroid\Refit*.*" target="lib\MonoAndroid" />
+        <file src="bin\Release\Xamarin.iOS10\Refit*.*" target="lib\Xamarin.iOS10" />
+<!--        <file src="bin\Release\Net45\Refit*.*" target="lib\Net45" />
+        <file src="bin\Release\Portable-Net45+WinRT45+WP8+WPA81\Refit*.*" target="lib\Portable-Net45+NetCore45+WP8+WPA81" />
+        <file src="bin\Release\WP8\Refit*.*" target="lib\WP8" />
+        <file src="bin\Release\Portable-Win81+Wpa81\Refit*.*" target="lib\Portable-Win81+Wpa81" />
+        <file src="bin\Release\WinRT45\Refit*.*" target="lib\NetCore45" /> -->
+    </files>
+</package>
+=======
   <metadata>
     <id>refit</id>
-    <version>3.0.1</version>
+    <version>2.5.0-beta-004</version>
     <title>Refit</title>
     <authors>Paul Betts,Refit contributors</authors>
     <owners>Paul Betts</owners>
@@ -53,3 +95,4 @@
     <file src="bin\Release\WinRT45\Refit*.*" target="lib\NetCore45" />
   </files>
 </package>
+>>>>>>> upstream/master

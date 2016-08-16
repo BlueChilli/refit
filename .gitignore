@@ -12,6 +12,8 @@ Desktop.ini
 *.user
 *.userprefs
 
+.vs/
+
 # Build results
 bin/[Dd]ebug/
 bin/[Rr]elease/
@@ -42,6 +44,11 @@ ipch/
 
 *.ide/
 
+
+*.lock.json
+*.nuget.props
+*.nuget.targets
+
 # Visual Studio profiler
 *.psess
 *.vsp
@@ -64,8 +71,6 @@ stylecop.*
 *.dbmdl
 .DS_Store
 Generated_Code #added for RIA/Silverlight projects
-
-*.sln.ide/
 
 # Custom
 
