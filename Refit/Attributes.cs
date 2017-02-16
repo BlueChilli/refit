@@ -118,19 +118,6 @@ namespace Refit
         }
     }
 
-
-    #region NameAttribute
-    [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property)]
-    public class NameAttribute : Attribute
-    {
-        public string Name { get; protected set; }
-        public NameAttribute(string name)
-        {
-            Name = name;
-        }
-    }
-    #endregion
-
     [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Method)]
     public class HeadersAttribute : Attribute
     {

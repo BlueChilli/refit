@@ -18,6 +18,7 @@ using System.Net;
 using System.Reactive.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using RichardSzalay.MockHttp;
 using System.IO;
 using System.Reflection;
 
@@ -455,9 +456,9 @@ namespace Refit.Tests
             return (Task<HttpResponseMessage>) methodImpls["UploadString"](Client, arguments);
         }
 
-        public virtual Task<HttpResponseMessage> UploadFileInfo(FileInfo fileInfo)
+        public virtual Task<HttpResponseMessage> UploadFileInfo(IEnumerable<FileInfo> fileInfos,FileInfo anotherFile)
         {
-            var arguments = new object[] { fileInfo };
+            var arguments = new object[] { fileInfos,anotherFile };
             return (Task<HttpResponseMessage>) methodImpls["UploadFileInfo"](Client, arguments);
         }
 

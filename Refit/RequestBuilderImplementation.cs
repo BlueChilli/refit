@@ -11,7 +11,6 @@ using System.Text;
 using Newtonsoft.Json;
 using System.IO;
 using System.Threading;
-using System.Web;
 
 using HttpUtility = System.Web.HttpUtility;
 
@@ -30,7 +29,6 @@ namespace Refit
         readonly Type targetType;
         readonly Dictionary<string, RestMethodInfo> interfaceHttpMethods;
         readonly RefitSettings settings;
-        private static string ContentDisposition = "form-data";
 
         public RequestBuilderImplementation(Type targetInterface, RefitSettings refitSettings = null)
         {
@@ -92,7 +90,7 @@ namespace Refit
                             settings.UrlParameterFormatter
                                     .Format(paramList[i], restMethod.ParameterInfoMap[i])
                                     .Replace("/", "%2F"), 
-                            RegexOptions.IgnoreCase);
+                            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
                         continue;
                     }
 
@@ -140,15 +138,58 @@ namespace Refit
                         continue;
                     }
 
-                    #region NameAttribute
                     // we are in a multipart method, add the part to the content
                     // the parameter name should be either the attachment name or the parameter name (as fallback)
                     string itemName;
-                    string name;
-                    if (! restMethod.AttachmentNameMap.TryGetValue(i, out itemName)) itemName = restMethod.QueryParameterMap[i];
-                    if (!restMethod.NameMap.TryGetValue(i, out name)) name = "";
-                    addMultipartItem(multiPartContent, name, itemName, paramList[i]);
-                    #endregion
+                    string parameterName;
+
+                    Tuple<string, string> attachment;
+                    if (!restMethod.AttachmentNameMap.TryGetValue(i, out attachment)) {
+                        itemName = restMethod.QueryParameterMap[i];
+                        parameterName = itemName;
+                    } else {
+                        itemName = attachment.Item1;
+                        parameterName = attachment.Item2;
+                    }
+
+
+                    // Check to see if it's an IEnumerable
+                    var itemValue = paramList[i];
+                    var enumerable = itemValue as IEnumerable<object>;
+                    var typeIsCollection = false;
+
+                    if (enumerable != null) {
+                        Type tType = null;
+                        var eType = enumerable.GetType();
+                        if (eType.GetTypeInfo().ContainsGenericParameters) {
+                            tType = eType.GenericTypeArguments[0];
+                        } else if (eType.IsArray) {
+                            tType = eType.GetElementType();
+                        }
+
+                        // check to see if it's one of the types we support for multipart:
+                        // FileInfo, Stream, string or byte[]
+                        if (tType == typeof(Stream) ||
+                            tType == typeof(string) ||
+                            tType == typeof(byte[])
+#if !NETFX_CORE
+                            || tType == typeof(FileInfo)
+#endif
+                        ) {
+                            typeIsCollection = true;
+                        }
+
+                        
+                    }
+
+                    if (typeIsCollection) {
+                        foreach (var item in enumerable) {
+                            addMultipartItem(multiPartContent, itemName, parameterName, item);
+                        }
+                    } else{
+                        addMultipartItem(multiPartContent, itemName, parameterName, itemValue);
+                    }
+
                 }
 
                 // NB: We defer setting headers until the body has been
@@ -205,42 +246,20 @@ namespace Refit
             }
         }
 
-        void addMultipartItem(MultipartFormDataContent multiPartContent, string name, string itemName, object itemValue)
+        void addMultipartItem(MultipartFormDataContent multiPartContent, string fileName, string parameterName, object itemValue)
         {
             var streamValue = itemValue as Stream;
-            var stringValue = itemValue as String;
+            var stringValue = itemValue as string;
             var byteArrayValue = itemValue as byte[];
-            if (streamValue != null)
-            {
+
+            if (streamValue != null) {
                 var streamContent = new StreamContent(streamValue);
-                #region NameAttribute
-                if (string.IsNullOrEmpty(name))
-                {
-                    streamContent.Headers.ContentDisposition = new ContentDispositionHeaderValue(ContentDisposition)
-                    {
-                        FileName = itemName
-
-                    };
-                }
-                else
-                {
-                    streamContent.Headers.ContentDisposition = new ContentDispositionHeaderValue(ContentDisposition)
-                    {
-                        FileName = itemName,
-                        Name = name
-                    };
-                }
-
-                streamContent.Headers.ContentType = new MediaTypeHeaderValue(MimeMapping.GetMimeMapping(itemName));
-
-                #endregion
-
-                multiPartContent.Add(streamContent);
+                multiPartContent.Add(streamContent, parameterName, fileName);
                 return;
             }
-
+             
             if (stringValue != null) {
-                multiPartContent.Add(new StringContent(stringValue), itemName);
+                multiPartContent.Add(new StringContent(stringValue),  parameterName, fileName);
                 return;
             }
 
@@ -248,54 +267,18 @@ namespace Refit
             var fileInfoValue = itemValue as FileInfo;
             if (fileInfoValue != null) {
                 var fileContent = new StreamContent(fileInfoValue.OpenRead());
-                #region NameAttribute
-                if (string.IsNullOrEmpty(name))
-                {
-                    fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue(ContentDisposition)
-                    {
-                        FileName = fileInfoValue.Name
-                    };
-                }
-                else
-                {
-                    fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue(ContentDisposition)
-                    {
-                        FileName = fileInfoValue.Name,
-                        Name = name
-                    };
-                }
-                fileContent.Headers.ContentType = new MediaTypeHeaderValue(MimeMapping.GetMimeMapping(fileInfoValue.Name));
-                #endregion
-                multiPartContent.Add(fileContent);
+                multiPartContent.Add(fileContent, parameterName, fileInfoValue.Name);
                 return;
             }
 #endif
 
             if (byteArrayValue != null) {
                 var fileContent = new ByteArrayContent(byteArrayValue);
-                #region NameAttribute
-                if (string.IsNullOrEmpty(name))
-                {
-                    fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue(ContentDisposition)
-                    {
-                        FileName = itemName
-                    };
-                }
-                else
-                {
-                    fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue(ContentDisposition)
-                    {
-                        FileName = itemName,
-                        Name = name
-                    };
-                }
-                fileContent.Headers.ContentType = new MediaTypeHeaderValue(MimeMapping.GetMimeMapping(itemName));
-                #endregion
-                multiPartContent.Add(fileContent);
+                multiPartContent.Add(fileContent, parameterName, fileName);
                 return;
             }
 
-            throw new ArgumentException(string.Format("Unexpected parameter type in a Multipart request. Parameter {0} is of type {1}, whereas allowed types are String, Stream, FileInfo, and Byte array", itemName, itemValue.GetType().Name), "itemValue");
+            throw new ArgumentException($"Unexpected parameter type in a Multipart request. Parameter {fileName} is of type {itemValue.GetType().Name}, whereas allowed types are String, Stream, FileInfo, and Byte array", nameof(itemValue));
         }
 
         public Func<HttpClient, object[], object> BuildRestResultFuncForMethod(string methodName)
@@ -388,13 +371,7 @@ namespace Refit
                     return (T)(object)resp.Content;
                 }
 
-                var ms = new MemoryStream();
-                using (var fromStream = await resp.Content.ReadAsStreamAsync().ConfigureAwait(false)) {
-                    await fromStream.CopyToAsync(ms, 4096, ct).ConfigureAwait(false);
-                }
-
-                var bytes = ms.ToArray();
-                var content = Encoding.UTF8.GetString(bytes, 0, bytes.Length);
+                var content = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
 
                 if (restMethod.SerializedReturnType == typeof(string)) {
                     return (T)(object)content; 
@@ -486,10 +463,7 @@ namespace Refit
         public Dictionary<int, string> HeaderParameterMap { get; set; }
         public Tuple<BodySerializationMethod, int> BodyParameterInfo { get; set; }
         public Dictionary<int, string> QueryParameterMap { get; set; }
-        public Dictionary<int, string> AttachmentNameMap { get; set; }
-        #region NameAttribute
-        public Dictionary<int, string> NameMap { get; set; }
-        #endregion
+        public Dictionary<int, Tuple<string, string>> AttachmentNameMap { get; set; }
         public Dictionary<int, ParameterInfo> ParameterInfoMap { get; set; }
         public Type ReturnType { get; set; }
         public Type SerializedReturnType { get; set; }
@@ -531,10 +505,7 @@ namespace Refit
             HeaderParameterMap = buildHeaderParameterMap(parameterList);
 
             // get names for multipart attachments
-            AttachmentNameMap = new Dictionary<int, string>();
-            #region NameAttribute
-            NameMap = new Dictionary<int, string>();
-            #endregion
+            AttachmentNameMap = new Dictionary<int, Tuple<string, string>>();
             if (IsMultipart) {
                 for (int i = 0; i < parameterList.Count; i++) {
                     if (ParameterMap.ContainsKey(i) || HeaderParameterMap.ContainsKey(i)) {
@@ -542,25 +513,11 @@ namespace Refit
                     }
 
                     var attachmentName = getAttachmentNameForParameter(parameterList[i]);
-                    if (attachmentName == null) continue;
-
-                    AttachmentNameMap[i] = attachmentName;
-                }
-
-                #region NameAttribute
-                for (int i = 0; i < parameterList.Count; i++)
-                {
-                    if (ParameterMap.ContainsKey(i) || HeaderParameterMap.ContainsKey(i))
-                    {
+                    if (attachmentName == null)
                         continue;
-                    }
 
-                    var name = getNameForParameter(parameterList[i]);
-                    if (name == null) continue;
-
-                    NameMap[i] = name;
+                    AttachmentNameMap[i] = Tuple.Create(attachmentName, getUrlNameForParameter(parameterList[i]).ToLowerInvariant());
                 }
-                #endregion
             }
 
             QueryParameterMap = new Dictionary<int, string>();
@@ -641,17 +598,6 @@ namespace Refit
                 .FirstOrDefault();
             return nameAttr != null ? nameAttr.Name : null;
         }
-
-        #region NameAttribute
-        string getNameForParameter(ParameterInfo paramInfo)
-        {
-            var nameAttr = paramInfo.GetCustomAttributes(true)
-                .OfType<NameAttribute>()
-                .FirstOrDefault();
-            return nameAttr != null ? nameAttr.Name : null;
-        }
-        #endregion
-
 
         static Tuple<BodySerializationMethod, int> findBodyParameter(IList<ParameterInfo> parameterList, bool isMultipart, HttpMethod method)
         {
