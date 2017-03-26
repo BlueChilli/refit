@@ -36,6 +36,11 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Batching\BatchRequest.cs" />
+    <Compile Include="Batching\BatchRequestImplementation.cs" />
+    <Compile Include="Batching\MultiFormDataDictionary.cs" />
+    <Compile Include="Batching\RequestBuilderImplementation.cs" />
+    <Compile Include="Batching\UriExtensions.cs" />
     <Compile Include="HttpUtility.NetStandard.cs" />
     <None Include="Refit-NetStandard13.project.json" />
     <!-- A reference to the entire .NET Framework is automatically included -->

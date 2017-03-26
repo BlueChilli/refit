@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Refit
 {
@@ -8,6 +10,9 @@ namespace Refit
     {
         IEnumerable<string> InterfaceHttpMethods { get; }
         Func<HttpClient, object[], object> BuildRestResultFuncForMethod(string methodName);
+        Func<HttpClient, object[], HttpRequestMessage> BuildRequestFuncForMethod(string methodName);
+        Func<HttpClient, CancellationToken, Task<IBatchResponse>> BuildRestResultTaskFuncForBatch(IBatchRequest request);
+        Func<HttpClient, CancellationToken, IObservable<IBatchResponse>> BuildRestResultRxFuncForBatch(IBatchRequest request);
     }
 
     interface IRequestBuilderFactory

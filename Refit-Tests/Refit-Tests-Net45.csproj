@@ -48,16 +48,26 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BatchResponseTests.cs" />
     <Compile Include="DeliminatorSeparatedPropertyNamesContractResolver.cs" />
     <Compile Include="GitHubApi.cs" />
     <Compile Include="IntegrationTestHelper.cs" />
+    <Compile Include="IntegrationTests.cs" />
     <Compile Include="InterfaceStubGenerator.cs" />
+    <Compile Include="BatchRequestTests.cs" />
+    <Compile Include="MultiFormDataDictionaryTests.cs" />
+    <Compile Include="MultiPartDataTests.cs" />
     <Compile Include="NamespaceCollisionApi.cs" />
     <Compile Include="RefitStubs.cs" />
     <Compile Include="RequestBuilder.cs" />
+    <Compile Include="RequestBuilderForBatchTests.cs" />
     <Compile Include="RestService.cs" />
     <Compile Include="MethodOverloads.cs" />
     <Compile Include="MultipartTests.cs" />
+    <Compile Include="Microsoft.TestCommon\TestData.cs" />
+    <Compile Include="Microsoft.TestCommon\TestDataSetAttribute.cs" />
+    <Compile Include="Microsoft.TestCommon\TestDataVariations.cs" />
+    <Compile Include="Microsoft.TestCommon\TheoryDataSet.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\InterfaceStubGenerator\InterfaceStubGenerator.csproj">
@@ -89,6 +99,9 @@
   -->
   <ItemGroup>
     <EmbeddedResource Include="Test Files\Test.pdf" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Test Files\apple.png" />
   </ItemGroup>
   <Target Name="GenerateRefitStubs" BeforeTargets="CoreCompile">
     <PropertyGroup>

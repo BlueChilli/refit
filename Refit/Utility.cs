@@ -62,6 +62,16 @@ namespace Refit
                 .Where(p => p.GetMethod.IsPublic || p.SetMethod.IsPublic)
                 .ToArray();
         }
+
+        public static bool IsAssignableTo(this Type source, Type dest)
+        {
+            return dest.GetTypeInfo().IsAssignableFrom(source.GetTypeInfo());
+        }
+
+        public static bool IsPrimitive(this Type source)
+        {
+            return source.GetTypeInfo().IsPrimitive;
+        }
     }
 
     [Flags]
@@ -74,16 +84,27 @@ namespace Refit
     }
 
 #else
+
     static class ReflectionExtensions
     {
-        public static bool IsInterface(this Type type) 
-        {            
+        public static bool IsInterface(this Type type)
+        {
             return type.IsInterface;
         }
 
         public static bool IsGenericType(this Type type) 
         {
             return type.IsGenericType;
+        }
+
+        public static bool IsAssignableTo(this Type source, Type dest)
+        {
+            return dest.IsAssignableFrom(source);
+        }
+
+        public static bool IsPrimitive(this Type source)
+        {
+            return source.IsPrimitive;
         }
     }
 #endif

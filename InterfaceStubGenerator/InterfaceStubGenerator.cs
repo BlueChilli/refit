@@ -87,6 +87,7 @@ namespace Refit.Generator
                 .Where(x => x != "System" && x != "System.Net.Http" && x != "System.Collections.Generic" && x != "System.Linq")
                 .Select(x => new UsingDeclaration() { Item = x });
 
+            
             var ret = new TemplateInformation() {
                 ClassList = interfaceList.Select(x => GenerateClassInfoForInterface(x)).ToList(),
                 UsingList = usings.ToList(),
