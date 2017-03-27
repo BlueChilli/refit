@@ -64,6 +64,7 @@ namespace Refit.Tests
     public interface IHazardApi
     {
         [Multipart]
+        [Headers("Accept: */*")]
         [Post("/hazards")]
         Task<Hazard> Create(MultiPartData<Hazard> hazard, [AliasAs("imageFile")] Stream image);
 
@@ -92,8 +93,8 @@ namespace Refit.Tests
        
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            request.Headers.Add("apiKey", _apikey);
-            request.Headers.Add("userKey", _userkey);
+            request.Headers.Add("ApiKey", _apikey);
+            request.Headers.Add("UserKey", _userkey);
 
             return base.SendAsync(request, cancellationToken);
         }
@@ -118,7 +119,8 @@ namespace Refit.Tests
                     Converters = { new StringEnumConverter(), new IsoDateTimeConverter() },
                     DateFormatHandling = DateFormatHandling.IsoDateFormat,
                     DateTimeZoneHandling = DateTimeZoneHandling.Utc
-                }
+                },
+                HttpMessageHandlerFactory = () => new AuthHandler(apiKey, userKey)
             };
 
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11;
