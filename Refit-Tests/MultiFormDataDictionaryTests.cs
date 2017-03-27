@@ -78,7 +78,7 @@ namespace Refit.Tests
         [TestDataSet(typeof(MultiFormDataDictionaryTests), nameof(ObjectData))]
         public void ShouldFlattenPropertiesAsKeyValuePair(Tuple<object, KeyValuePair<string, string>> data)
         {
-            var r = new MultiFormDataDictionary(paramName, data.Item1, new RefitSettings()
+            var r = new MultiFormDataDictionary(data.Item1, new RefitSettings()
             {
                 JsonSerializerSettings = new JsonSerializerSettings()
                 {

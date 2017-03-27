@@ -26,6 +26,11 @@ namespace Refit
             return type.GetTypeInfo().IsGenericType;
         }
 
+        public static IEnumerable<Type> GetInterfaces(this Type type)
+        {
+            return type.GetTypeInfo().ImplementedInterfaces;
+        }
+
         public static MethodInfo[] GetMethods(this Type type) 
         {
             return type.GetRuntimeMethods()
@@ -83,6 +88,7 @@ namespace Refit
         NonPublic = 32
     }
 
+   
 #else
 
     static class ReflectionExtensions
@@ -108,5 +114,6 @@ namespace Refit
         }
     }
 #endif
+
 }
 

@@ -1,0 +1,70 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard1.3;net45</TargetFrameworks>
+    <NetStandardImplicitPackageVersion>1.6.1</NetStandardImplicitPackageVersion>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+    <GenerateAssemblyCopyRightAttribute>false</GenerateAssemblyCopyRightAttribute>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="**\*.cs" Exclude="obj\**\*.cs" />
+    <EmbeddedResource Include="**\*.resx" />
+    <EmbeddedResource Include="compiler\resources\**\*" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Resources\**" />
+    <Compile Remove="targets\**" />
+    <EmbeddedResource Remove="Resources\**" />
+    <EmbeddedResource Remove="targets\**" />
+    <None Remove="Resources\**" />
+    <None Remove="targets\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="HtmlEncoder.cs" />
+    <Compile Remove="HtmlEncoder.cs" />
+    <Compile Remove="HttpUtility.cs" />
+    <Compile Remove="HttpUtility.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="HtmlEncoder.cs" />
+    <None Remove="HttpUtility.cs" />
+    <None Remove="Refit-Net45.project.json" />
+    <None Remove="Refit-Net45.project.lock.json" />
+    <None Remove="Refit-NetStandard11.project.json" />
+    <None Remove="Refit-NetStandard11.project.lock.json" />
+    <None Remove="Refit-NetStandard13.project.json" />
+    <None Remove="Refit-NetStandard13.project.lock.json" />
+    <None Remove="refit.nuspec" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net45'">
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Net.Http.WebRequest" />
+    <Reference Include="System.Web" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.3'">
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities">
+      <Version>1.1.1</Version>
+    </PackageReference>
+    <PackageReference Include="WinInsider.System.Net.Http.Formatting" Version="1.0.4" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
+    <PackageReference Include="Microsoft.AspNet.WebApi.Client">
+      <Version>5.2.3</Version>
+    </PackageReference>
+  </ItemGroup>
+ 
+</Project>

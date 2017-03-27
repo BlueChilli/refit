@@ -74,9 +74,9 @@
       <Project>{5694F8AD-7A15-4717-B649-1749A311300B}</Project>
       <Name>InterfaceStubGenerator</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Refit\Refit-Net45.csproj">
-      <Project>{252CE1CA-19FA-4445-A3C2-E4D6C80A935A}</Project>
-      <Name>Refit-Net45</Name>
+    <ProjectReference Include="..\Refit\Refit.csproj">
+      <Project>{760c3707-7286-4eb5-8fab-7f0328039ec6}</Project>
+      <Name>Refit</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

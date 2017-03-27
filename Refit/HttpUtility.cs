@@ -39,7 +39,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.IO;
-#if !WINDOWS_APP && !NETSTANDARD1_6
+#if !WINDOWS_APP 
 using System.Security.Permissions;
 #endif
 using System.Text;

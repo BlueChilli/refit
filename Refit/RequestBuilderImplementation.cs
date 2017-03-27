@@ -304,7 +304,7 @@ namespace Refit
                 }
                 else
                 {
-                    var obj = new MultiFormDataDictionary(String.Empty, multiPartDataValue.Value, settings);
+                    var obj = new MultiFormDataDictionary(multiPartDataValue.Value, settings);
                     foreach (var keyValuePair in obj)
                     {
                         multiPartContent.Add(new StringContent(keyValuePair.Value), $"\"{keyValuePair.Key}\"");

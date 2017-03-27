@@ -107,10 +107,10 @@ namespace Refit.Tests
             const string apiKey = "CF5252EB-4537-4460-A1F6-6D9BF0DBDBFA";
             const string userKey = "0872d545-0639-4847-9dda-bc0e31bd871a";
 
-            var url = "https://dev.bluechilli.com/safetycompass/api";
+            const string runscopeUri = "https://dev-bluechilli-com-8df7aa5t6xhz.runscope.net/safetycompass/api/";
+          //  const string runscopeUri  = "https://dev.bluechilli.com/safetycompass/api";
 
-
-            var settings = new RefitSettings()
+           var settings = new RefitSettings()
             {
                 JsonSerializerSettings = new JsonSerializerSettings()
                 {
@@ -118,11 +118,11 @@ namespace Refit.Tests
                     Converters = { new StringEnumConverter(), new IsoDateTimeConverter() },
                     DateFormatHandling = DateFormatHandling.IsoDateFormat,
                     DateTimeZoneHandling = DateTimeZoneHandling.Utc
-                }
+                },
+                HttpMessageHandlerFactory = () => new AuthHandler(apiKey, userKey)
             };
 
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11;
-            var api = RestService.For<IHazardApi>(url, settings);
+            var api = RestService.For<IHazardApi>(runscopeUri, settings);
 
             var hazard = new Hazard()
             {

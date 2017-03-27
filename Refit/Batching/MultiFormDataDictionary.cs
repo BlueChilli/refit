@@ -104,7 +104,7 @@ namespace Refit
     }
     class MultiFormDataDictionary : Dictionary<string, string>
     {
-        public MultiFormDataDictionary(string paramName, object source, RefitSettings settings)
+        public MultiFormDataDictionary(object source, RefitSettings settings)
         {
             if (source == null) return;
 
@@ -120,7 +120,7 @@ namespace Refit
                 return;
             }
 
-            var r = ConvertObjectToFlatPropertiesList(paramName, source);
+            var r = ConvertObjectToFlatPropertiesList(String.Empty, source);
 
             foreach (var item in r)
             {
