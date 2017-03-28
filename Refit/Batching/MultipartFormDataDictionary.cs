@@ -16,10 +16,10 @@ namespace Refit
     {
         new T Value { get; set; }
     }
-    public class MultiPartData<T> : IPart<T>
+    public class MultipartData<T> : IPart<T>
     {
 
-        private MultiPartData(T data)
+        private MultipartData(T data)
         {
             if (data == null)
             {
@@ -43,9 +43,9 @@ namespace Refit
         public T Value { get; set; }
         object IPart.Value => Value;
 
-        public static MultiPartData<T> Create(T data)
+        public static MultipartData<T> Create(T data)
         {
-            return new MultiPartData<T>(data);
+            return new MultipartData<T>(data);
         }
     }
 
@@ -66,13 +66,13 @@ namespace Refit
         public string FileName { get; }
     }
  
-    class MultiFormDataDictionary : Dictionary<FormDataKeyItem, object>
+    class MultipartFormDataDictionary : Dictionary<FormDataKeyItem, object>
     {
         private readonly string _paramName;
         private static readonly Dictionary<Type, PropertyInfo[]> propertyCache
                 = new Dictionary<Type, PropertyInfo[]>();
 
-        public MultiFormDataDictionary(string paramName, object source, RefitSettings settings)
+        public MultipartFormDataDictionary(string paramName, object source, RefitSettings settings)
         {
             this._paramName = paramName;
             if (source == null) return;
@@ -159,7 +159,7 @@ namespace Refit
 
                     foreach (var indexedPropValue in list)
                     {
-                        string indexedPropName = String.Format("{0}[{1}]", pref, index);
+                        string indexedPropName = $"{pref}[{index}]";
                         FillFlatPropertiesListFromObject(indexedPropValue, indexedPropName, alternativeName, propertiesList);
 
                         index++;
@@ -171,17 +171,14 @@ namespace Refit
                   
                     foreach (var propertyInfo in props)
                     {
+                        var jsonProperty = propertyInfo.GetCustomAttribute<JsonPropertyAttribute>();
+                        var propertyName = jsonProperty != null ? jsonProperty.PropertyName : propertyInfo.Name;
                         string propName = String.IsNullOrWhiteSpace(prefix)
-                            ? propertyInfo.Name
-                            : String.Format("{0}[{1}]", prefix.ToCamelCase(), propertyInfo.Name.ToCamelCase());
+                            ? propertyName
+                            : $"{prefix.ToCamelCase()}[{propertyName.ToCamelCase()}]";
 
                         var attachmentName = propertyInfo.GetCustomAttribute<AttachmentNameAttribute>();
-                        var fileName = alternativeName;
-                        if (attachmentName != null)
-                        {
-                            fileName = attachmentName.Name;
-                        }
-
+                        var fileName = attachmentName != null ? attachmentName.Name : alternativeName;
                         object propValue = propertyInfo.GetValue(obj);
 
                         FillFlatPropertiesListFromObject(propValue, propName, fileName, propertiesList);

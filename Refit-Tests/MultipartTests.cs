@@ -25,7 +25,7 @@ namespace Refit.Tests
     {
         public List<int> Ids { get; set; }
     }
-    public interface IRunscopeApi : IAsyncBatchable, IObservableBatchable
+    public interface IRunscopeApi
     {
         [Multipart]
         [Post("/")]
@@ -45,11 +45,11 @@ namespace Refit.Tests
 
         [Multipart]
         [Post("/")]
-        Task<HttpResponseMessage> UploadFileInfoWithUrlEncodedBodyData( MultiPartData<Item> item, [AliasAs("fileInfo")] IEnumerable<FileInfo> fileInfo);
+        Task<HttpResponseMessage> UploadFileInfoWithUrlEncodedBodyData( MultipartData<Item> item, [AliasAs("fileInfo")] IEnumerable<FileInfo> fileInfo);
 
         [Multipart]
         [Post("/")]
-        Task<HttpResponseMessage> UploadFileInfoWithJsonObject(MultiPartData<TestObject> testObject, FileInfo anotherFile);
+        Task<HttpResponseMessage> UploadFileInfoWithJsonObject(MultipartData<TestObject> testObject, FileInfo anotherFile);
 
         [Post("/")]
         Task<HttpResponseMessage> SendMessage(string message);
@@ -147,7 +147,7 @@ namespace Refit.Tests
                     outStream.Close();
                     var fixture = RestService.For<IRunscopeApi>(runscopeUri, settings);
 
-                    var result = await fixture.UploadFileInfoWithUrlEncodedBodyData(MultiPartData<Item>.Create(new Item() { Ids = new List<int>() { 1 } }),  new[] { new FileInfo(fileName), new FileInfo(fileName) });
+                    var result = await fixture.UploadFileInfoWithUrlEncodedBodyData(MultipartData<Item>.Create(new Item() { Ids = new List<int>() { 1 } }),  new[] { new FileInfo(fileName), new FileInfo(fileName) });
                     Assert.True(result.IsSuccessStatusCode);
                    
                 }
@@ -191,7 +191,7 @@ namespace Refit.Tests
                     };
 
                     var fixture = RestService.For<IRunscopeApi>(runscopeUri, settings);
-                    var result = await fixture.UploadFileInfoWithJsonObject(MultiPartData<TestObject>.Create(testObj), new FileInfo(fileName));
+                    var result = await fixture.UploadFileInfoWithJsonObject(MultipartData<TestObject>.Create(testObj), new FileInfo(fileName));
                     Assert.True(result.IsSuccessStatusCode);
                    
                 }

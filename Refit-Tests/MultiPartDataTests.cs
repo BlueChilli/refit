@@ -12,11 +12,11 @@ using Xunit;
 namespace Refit.Tests
 {
 
-    public class MultiPartDataTests
+    public class MultipartDataTests
     {
-        private Func<T, MultiPartData<T>> Create<T>()
+        private Func<T, MultipartData<T>> Create<T>()
         {
-            return MultiPartData<T>.Create;
+            return MultipartData<T>.Create;
         }
 
         public static TheoryDataSet<Stream> StreamData => new TheoryDataSet<Stream>()
@@ -43,13 +43,13 @@ namespace Refit.Tests
         [Fact]
         public void Ctr_ShouldThrow_IfDataIsNull()
         {
-            Assert.Throws<ArgumentNullException>(() => MultiPartData<string>.Create(null));
+            Assert.Throws<ArgumentNullException>(() => MultipartData<string>.Create(null));
         }
 
         [Theory]
-        [TestDataSet(typeof(MultiPartDataTests), nameof(StreamData))]
-        [TestDataSet(typeof(MultiPartDataTests), nameof(FileInfoData))]
-        [TestDataSet(typeof(MultiPartDataTests), nameof(BytesData))]
+        [TestDataSet(typeof(MultipartDataTests), nameof(StreamData))]
+        [TestDataSet(typeof(MultipartDataTests), nameof(FileInfoData))]
+        [TestDataSet(typeof(MultipartDataTests), nameof(BytesData))]
         public void Ctr_ShouldThrow_IfAnyOfDataContainsFileRelatedObjectTypes(object data)
         {
             var taskFuncMi = GetType().GetMethod("Create", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -70,7 +70,7 @@ namespace Refit.Tests
         {
             var api = RestService.For<ITestApi3>("http://www.test.com");
 
-            await Assert.ThrowsAsync<ArgumentException>(async () => await api.ChangeTask(MultiPartData<TestObject>.Create(new TestObject())));
+            await Assert.ThrowsAsync<ArgumentException>(async () => await api.ChangeTask(MultipartData<TestObject>.Create(new TestObject())));
         }
 
     }

@@ -43,7 +43,7 @@ namespace Refit.Tests
     public interface ITestApi3
     {
         [Post("/")]
-        Task<string> ChangeTask([Body] MultiPartData<TestObject> testObject);
+        Task<string> ChangeTask([Body] MultipartData<TestObject> testObject);
 
     }
 

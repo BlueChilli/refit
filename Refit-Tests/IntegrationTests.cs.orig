@@ -90,12 +90,16 @@ namespace Refit.Tests
         public string LastName { get; set; }
     }
 
+<<<<<<< HEAD
     public class Company
     {
         public int Id { get; set; }
         public string Name { get; set; }
     }
     public interface IBatchApi
+=======
+    public interface IBlastMeApi : IAsyncBatchable, IObservableBatchable
+>>>>>>> 34e945dfbf72d6944682c015a603777e667319f2
     {
 
         [Post("/users/login")]
@@ -185,7 +189,12 @@ namespace Refit.Tests
             const string apiKey = "D2FC4BB2-6E9A-4204-9075-013B7C748159";
             const string userKey = "c7334a86-e4ba-454b-b7fa-c0a337a0a21d";
 
+<<<<<<< HEAD
             var url = "https://benchon-dev.azurewebsites.net/api/v1";
+=======
+            var url = "https://dev.bluechilli.com/blastme/api/v1";
+
+>>>>>>> 34e945dfbf72d6944682c015a603777e667319f2
 
             var container = new CookieContainer();
             var settings = new RefitSettings()

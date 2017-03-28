@@ -276,7 +276,7 @@ namespace Refit
                 }
                 else
                 {
-                    var obj = new MultiFormDataDictionary(parameterName, multiPartDataValue.Value, settings);
+                    var obj = new MultipartFormDataDictionary(parameterName, multiPartDataValue.Value, settings);
                     foreach (var keyValuePair in obj)
                     {
                         var val = keyValuePair.Value as string;
@@ -307,13 +307,15 @@ namespace Refit
             if (streamValue != null)
             {
                 var streamContent = new StreamContent(streamValue);
+                AddMimeTypeFromFileName(streamContent, fileName);
                 multiPartContent.Add(streamContent, parameterName, fileName);
                 return true;
             }
 
             if (stringValue != null)
             {
-                multiPartContent.Add(new StringContent(stringValue), parameterName, fileName);
+                var content = new StringContent(stringValue);
+                multiPartContent.Add(content, parameterName, fileName);
                 return true;
             }
 
@@ -322,6 +324,7 @@ namespace Refit
             if (fileInfoValue != null)
             {
                 var fileContent = new StreamContent(fileInfoValue.OpenRead());
+                AddMimeTypeFromFileName(fileContent, fileInfoValue.Name);
                 multiPartContent.Add(fileContent, parameterName, fileInfoValue.Name);
                 return true;
             }
@@ -330,11 +333,25 @@ namespace Refit
             if (byteArrayValue != null)
             {
                 var fileContent = new ByteArrayContent(byteArrayValue);
+                AddMimeTypeFromFileName(fileContent, fileName);
                 multiPartContent.Add(fileContent, parameterName, fileName);
                 return true;
             }
 
             return false;
+        }
+
+        private static void AddMimeTypeFromFileName(HttpContent content, string fileName)
+        {
+            if (String.IsNullOrEmpty(fileName)) {
+                return;
+            }
+
+            var mimeType =  MimeMapping.GetMimeMapping(fileName);
+
+            if(!String.IsNullOrEmpty(mimeType)) {
+                content.Headers.Add("Content-Type", mimeType);
+            }
         }
 
         public Func<HttpClient, object[], object> BuildRestResultFuncForMethod(string methodName)

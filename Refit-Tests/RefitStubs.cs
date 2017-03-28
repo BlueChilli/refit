@@ -152,9 +152,9 @@ namespace Refit.Tests
             Client = client;
         }
 
-        public virtual Task<Hazard> Create(MultiPartData<Hazard> hazard,FileInfo imageFile)
+        public virtual Task<Hazard> Create(MultipartData<Hazard> hazard)
         {
-            var arguments = new object[] { hazard,imageFile };
+            var arguments = new object[] { hazard };
             return (Task<Hazard>) methodImpls["Create"](Client, arguments);
         }
 
@@ -164,7 +164,7 @@ namespace Refit.Tests
             return (Task<HttpResponseMessage>) methodImpls["GetAccoutStatus"](Client, arguments);
         }
 
-        public virtual Task<HttpResponseMessage> Update(MultiPartData<IdItem> item)
+        public virtual Task<HttpResponseMessage> Update(MultipartData<IdItem> item)
         {
             var arguments = new object[] { item };
             return (Task<HttpResponseMessage>) methodImpls["Update"](Client, arguments);
@@ -518,7 +518,7 @@ namespace Refit.Tests
             Client = client;
         }
 
-        public virtual Task<string> ChangeTask(MultiPartData<TestObject> testObject)
+        public virtual Task<string> ChangeTask(MultipartData<TestObject> testObject)
         {
             var arguments = new object[] { testObject };
             return (Task<string>) methodImpls["ChangeTask"](Client, arguments);
@@ -960,13 +960,13 @@ namespace Refit.Tests
             return (Task<HttpResponseMessage>) methodImpls["UploadFileInfo"](Client, arguments);
         }
 
-        public virtual Task<HttpResponseMessage> UploadFileInfoWithUrlEncodedBodyData(MultiPartData<Item> item,IEnumerable<FileInfo> fileInfo)
+        public virtual Task<HttpResponseMessage> UploadFileInfoWithUrlEncodedBodyData(MultipartData<Item> item,IEnumerable<FileInfo> fileInfo)
         {
             var arguments = new object[] { item,fileInfo };
             return (Task<HttpResponseMessage>) methodImpls["UploadFileInfoWithUrlEncodedBodyData"](Client, arguments);
         }
 
-        public virtual Task<HttpResponseMessage> UploadFileInfoWithJsonObject(MultiPartData<TestObject> testObject,FileInfo anotherFile)
+        public virtual Task<HttpResponseMessage> UploadFileInfoWithJsonObject(MultipartData<TestObject> testObject,FileInfo anotherFile)
         {
             var arguments = new object[] { testObject,anotherFile };
             return (Task<HttpResponseMessage>) methodImpls["UploadFileInfoWithJsonObject"](Client, arguments);

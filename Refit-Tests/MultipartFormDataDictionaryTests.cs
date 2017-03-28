@@ -14,7 +14,7 @@ using Refit;
 namespace Refit.Tests
 {
     
-    public class MultiFormDataDictionaryTests
+    public class MultipartFormDataDictionaryTests
     {
         private const string paramName = "test";
 
@@ -105,10 +105,10 @@ namespace Refit.Tests
       
 
         [Theory]
-        [TestDataSet(typeof(MultiFormDataDictionaryTests), nameof(ObjectData))]
+        [TestDataSet(typeof(MultipartFormDataDictionaryTests), nameof(ObjectData))]
         public void ShouldFlattenPropertiesAsKeyValuePair(Tuple<object, KeyValuePair<string, object>> data)
         {
-            var r = new MultiFormDataDictionary(paramName, data.Item1, new RefitSettings()
+            var r = new MultipartFormDataDictionary(paramName, data.Item1, new RefitSettings()
             {
                 JsonSerializerSettings = new JsonSerializerSettings()
                 {
