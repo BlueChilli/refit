@@ -113,9 +113,9 @@ namespace Refit
 
                 }
 
-                var ordered = items.OrderBy(m => m.Index).ToList();
+                var restResults = items.OrderBy(m => m.Index).ToList();
 
-                foreach (var o in ordered)
+                foreach (var o in restResults)
                 {
                     responses.AddResponse(o);
                 }
