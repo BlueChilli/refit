@@ -33,8 +33,11 @@ namespace Refit.Tests
                 ContentFactory = () =>
                 {
                     var mulitpartContent = new MultipartContent("mixed", $"batch_{Guid.NewGuid().ToString()}");
-                    mulitpartContent.Add(new HttpMessageContent(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("Dope") }));
-                    mulitpartContent.Add(new HttpMessageContent(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("Hello") }));
+                    foreach (var rq in request.Requests)
+                    {
+                        var message = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent($"{rq.RequestId}") };
+                        message.Headers.Add("RequestId", rq.RequestId);
+                    }
                     return mulitpartContent;
                 }
             };
@@ -42,7 +45,6 @@ namespace Refit.Tests
             var r = RestService.For<ITestApi>(client);
             var response = await (Task<IBatchResponse>)factory(client, CancellationToken.None);
             Assert.Equal(HttpMethod.Post, testHttpMessageHandler.RequestMessage.Method);
-            Assert.Equal(batchURL, testHttpMessageHandler.RequestMessage.RequestUri.AbsoluteUri);
             Assert.IsType<MultipartContent>(testHttpMessageHandler.RequestMessage.Content);
             Assert.Equal("multipart/mixed", (testHttpMessageHandler.RequestMessage.Content as MultipartContent).Headers.ContentType.MediaType);
         }
@@ -64,8 +66,11 @@ namespace Refit.Tests
                 ContentFactory = () =>
                 {
                     var mulitpartContent = new MultipartContent("mixed", $"batch_{Guid.NewGuid().ToString()}");
-                    mulitpartContent.Add(new HttpMessageContent(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("Dope") }));
-                    mulitpartContent.Add(new HttpMessageContent(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("Hello") }));
+                    foreach (var rq in request.Requests)
+                    {
+                        var message = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent($"{rq.RequestId}") };
+                        message.Headers.Add("RequestId", rq.RequestId);
+                    }
                     return mulitpartContent;
                 }
             };
@@ -93,9 +98,12 @@ namespace Refit.Tests
                 ContentFactory = () =>
                 {
                     var mulitpartContent = new MultipartContent("mixed", $"batch_{Guid.NewGuid().ToString()}");
-                    mulitpartContent.Add(new HttpMessageContent(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("Dope") }));
-                    mulitpartContent.Add(new HttpMessageContent(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("Hello") }));
-                    mulitpartContent.Add(new HttpMessageContent(new HttpResponseMessage(HttpStatusCode.OK)));
+                    foreach (var rq in request.Requests)
+                    {
+                        var message = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent($"{rq.RequestId}") };
+                        message.Headers.Add("RequestId", rq.RequestId);
+                        mulitpartContent.Add(new HttpMessageContent(message));
+                    }
                     return mulitpartContent;
                 }
             };
@@ -123,10 +131,41 @@ namespace Refit.Tests
                 ContentFactory = () =>
                 {
                     var mulitpartContent = new MultipartContent("mixed", $"batch_{Guid.NewGuid().ToString()}");
-                    mulitpartContent.Add(new HttpMessageContent(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("Dope") }));
-                    mulitpartContent.Add(new HttpMessageContent(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("Hello") }));
-                    mulitpartContent.Add(new HttpMessageContent(new HttpResponseMessage(HttpStatusCode.OK)));
-                    mulitpartContent.Add(new HttpMessageContent(new HttpResponseMessage(HttpStatusCode.BadRequest)));
+                    RequestInfo info = null;
+
+                    for (var i = 0; i < request.Requests.Count; i++)
+                    {
+                        HttpResponseMessage message = null;
+
+                        if (i == 0)
+                        {
+                            info = request.Requests[2];
+
+                            message = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("Request2") };
+                        }
+                        else if (i == 1)
+                        {
+                            info = request.Requests[1];
+                            message = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("Request1") };
+
+                        }
+                        else if (i == 2)
+                        {
+                            info = request.Requests[3];
+                            message = new HttpResponseMessage(HttpStatusCode.BadRequest);
+
+                        }
+                        else if (i == 3)
+                        {
+                            info = request.Requests[0];
+                            message = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("Request0") };
+
+                        }
+                        mulitpartContent.Add(new HttpMessageContent(message));
+                        message.Headers.Add("RequestId", info.RequestId);
+
+                    }
+
                     return mulitpartContent;
                 }
             };
@@ -134,7 +173,7 @@ namespace Refit.Tests
             var response = await (Task<IBatchResponse>)factory(client, CancellationToken.None);
             Assert.Equal(4, response.Count);
             var r = response.GetResult<string>(0);
-            Assert.Equal("Dope", r.Value);
+            Assert.Equal("Request0", r.Value);
             Assert.Equal(true, r.IsSuccessful);
             var r1 = response.GetResult(nameof(ITestApi.GetHello));
             Assert.Equal(true, r.IsSuccessful);
@@ -144,13 +183,5 @@ namespace Refit.Tests
 
         }
 
-        [Fact]
-        public void ShouldAddFullPathFromRelativeUrl()
-        {
-            var uri = new Uri(baseURL);
-            var uri1 ="/batch".TrimStart('/');
-
-            Assert.Equal(batchURL, new Uri(uri, uri1).AbsoluteUri);
-        }
     }
 }

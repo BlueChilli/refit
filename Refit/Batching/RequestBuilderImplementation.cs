@@ -11,6 +11,8 @@ namespace Refit
 {
     partial class RequestBuilderImplementation
     {
+        private const string RequestIdHeaderKey = "RequestId";
+
         public Func<HttpClient, CancellationToken, Task<IBatchResponse>> BuildRestResultTaskFuncForBatch(IBatchRequest request)
         {
             if (request == null)
@@ -55,14 +57,19 @@ namespace Refit
             return async (client, cancellationToken) =>
             {
                 var batchMultipartContent = new MultipartContent("mixed", $"----batch_{Guid.NewGuid().ToString()}");
-                var baseUrl = client.BaseAddress.TrimEndSlash() + "/";
+                var baseUrl = client.BaseAddress.AbsoluteUri.TrimEndSlash() + "/";
+                var absolutePath = client.BaseAddress.AbsolutePath;
+                var basePath = absolutePath == "/" ? client.BaseAddress.AbsoluteUri : client.BaseAddress.AbsoluteUri.Replace(absolutePath, "");
 
+                var i = 1;
                 foreach (var r in requests)
                 {
                     var requestMessage = r.RequestMessageFactory(client, r.ParameterList);
                     var requestPath = requestMessage.RequestUri.OriginalString.TrimStartSlash();
-                    requestMessage.RequestUri = new Uri(new Uri(baseUrl), requestPath);
+                    requestMessage.RequestUri = new Uri(new Uri(basePath), requestPath);
+                    requestMessage.Headers.Add(RequestIdHeaderKey, r.RequestId);
                     batchMultipartContent.Add(new HttpMessageContent(requestMessage));
+                    i++;
                 }
 
                 var rq = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(baseUrl), path).AbsoluteUri) { Content = batchMultipartContent };
@@ -84,17 +91,34 @@ namespace Refit
 
                 var contents = await resp.Content.ReadAsMultipartAsync(cancellationToken).ConfigureAwait(false);
 
-                var i = 0;
-                foreach (var req in requests)
+                var items = new List<RestResult>();
+                for (var j = 0; j < contents.Contents.Count; j++)
                 {
-                    var restMethod = restMethods[req.Method];
-                    var res = await contents.Contents[i].ReadAsHttpResponseMessageAsync(cancellationToken).ConfigureAwait(false);
-                    var taskFunc = taskFuncs[i];
-                    var result = await ((Task<RestResult>)taskFunc.DynamicInvoke(rq.RequestUri, res, restMethod, req.Label)).ConfigureAwait(false);
-                    responses.AddResponse(result);
-                    i++;
+                    var res = await contents.Contents[j].ReadAsHttpResponseMessageAsync(cancellationToken).ConfigureAwait(false);
+                    if (res.Headers.Contains(RequestIdHeaderKey))
+                    {
+                        var requestId = res.Headers.GetValues(RequestIdHeaderKey).FirstOrDefault();
+                        var req = requests.FirstOrDefault(m => m.RequestId == requestId);
+                        var restMethod = restMethods[req.Method];
+                        var indexId = requests.IndexOf(req);
+                        var taskFunc = taskFuncs[indexId];
+                        var result = await ((Task<RestResult>)taskFunc.DynamicInvoke(rq.RequestUri, res, restMethod, req.Label)).ConfigureAwait(false);
+                        result.Index = indexId;
+                        items.Add(result);
+                    }
+                    else
+                    {
+                        throw new ArgumentException($"RequestId is not in the response header. Sorry can not parse it !!!!");
+                    }
+
                 }
 
+                var ordered = items.OrderBy(m => m.Index).ToList();
+
+                foreach (var o in ordered)
+                {
+                    responses.AddResponse(o);
+                }
 
                 return responses;
             };
@@ -122,5 +146,6 @@ namespace Refit
         {
             return ResolveResponseTo<T>;
         }
+
     }
 }

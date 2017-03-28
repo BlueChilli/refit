@@ -77,7 +77,7 @@ namespace Refit.Tests
 
             var rs = rq.CreateBatchResponse();
             rs.AddResponse(RestResult<int>.AsSuccess(nameof(ITestApi.UploadFileInfo2), 10));
-            var re = rs.GetResult<string>(nameof(ITestApi.Hello));
+            var re = rs.GetResults<string>(nameof(ITestApi.Hello));
             var result = re.FirstOrDefault();
             Assert.Equal(1, re.Count());
             Assert.Equal(false, result.IsSuccessful);
@@ -95,7 +95,7 @@ namespace Refit.Tests
                 .Build() as BatchRequest;
 
             var rs = rq.CreateBatchResponse();
-            var re = rs.GetResult<string>("Hello");
+            var re = rs.GetResults<string>("Hello");
             var result = re.FirstOrDefault();
             Assert.Equal(false, result.IsSuccessful);
             var r = await Assert.ThrowsAsync<ArgumentException>(() => { throw result.Exception; });

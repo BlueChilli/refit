@@ -110,6 +110,7 @@ namespace Refit
 
             _requests.Add(new RequestInfo()
             {
+                RequestId = Guid.NewGuid().ToString(),
                 Label = label,
                 Method = methodName,
                 ParameterList = paramters,
@@ -185,6 +186,7 @@ namespace Refit
 
     class RequestInfo
     {
+        public string RequestId { get; set; }
         public string Label { get; set; }
         public string Method { get; set; }
         public object[] ParameterList { get; set; }
@@ -273,7 +275,7 @@ namespace Refit
         }
 
       
-        public IEnumerable<RestResult<TResult>> GetResult<TResult>(string methodName)
+        public IEnumerable<RestResult<TResult>> GetResults<TResult>(string methodName)
         {
             if (!_responses.Any(m => m.Method == methodName))
             {
@@ -282,9 +284,10 @@ namespace Refit
          
             var responseInfo = _responses.FirstOrDefault(m => m.Method == methodName);
 
-            if (!(responseInfo.Val is TResult))
+            if (!(responseInfo is RestResult<TResult>))
             {
                 return new List<RestResult<TResult>>() { RestResult<TResult>.AsError(methodName, new ArgumentException($"Expected type was {typeof(TResult).Name} but was {responseInfo.Val.GetType().Name}")) };
+
             }
 
             var r = _responses.Where(m => m.Method == methodName).Select(m => (RestResult<TResult>)m).ToList();
@@ -301,18 +304,18 @@ namespace Refit
             }
 
             var responseInfo = _responses[index];
-            if (!(responseInfo.Val is TResult))
+
+            if (!(responseInfo is RestResult<TResult>))
             {
                 return RestResult<TResult>.AsError(responseInfo.Method, new ArgumentException($"Expected type was {typeof(TResult).Name} but was {responseInfo.Val.GetType().Name}"));
             }
-
 
             return (RestResult<TResult>)_responses[index];
         }
 
         public RestResult<TResult> GetResult<TResult>(string methodName, string label)
         {
-            var r = GetResult<TResult>(methodName);
+            var r = GetResults<TResult>(methodName);
             return !(r.Any(m => m.Label == label)) ? RestResult<TResult>.AsError(methodName, new ArgumentException($"Could not find the result with {label}")) : r.FirstOrDefault(m => m.Label == label);
         }
 

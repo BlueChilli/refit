@@ -77,7 +77,7 @@ namespace Refit
 
     public interface IBatchResponse
     {
-        IEnumerable<RestResult<TResult>> GetResult<TResult>(string methodName);
+        IEnumerable<RestResult<TResult>> GetResults<TResult>(string methodName);
         RestResult<TResult> GetResult<TResult>(int index);
         RestResult<TResult> GetResult<TResult>(string methodName, string label);
         RestResult GetResult(string methodName, string label = null);
@@ -93,6 +93,7 @@ namespace Refit
 
     public class RestResult
     {
+        public int Index { get; set; }
         public string Label { get; internal set; }
         public string Method { get; internal set; }
         public bool IsSuccessful { get; internal set; }

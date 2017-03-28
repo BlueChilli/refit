@@ -66,8 +66,8 @@ namespace Refit.Tests
         // and then insert your bucket URI here in order to run tests and verify success via the Runscope UI
         const string runscopeUri = "https://8df7aa5t6xhz.runscope.net/";
 
-        // [Fact(Skip = "Set runscopeUri field to your Runscope key in order to test this function.")]
-        [Fact]
+        [Fact(Skip = "Set runscopeUri field to your Runscope key in order to test this function.")]
+        //[Fact]
         public async Task MultipartUploadShouldWorkWithStream()
         {
             using (var stream = GetTestFileStream("Test Files/Test.pdf")) {
@@ -78,8 +78,8 @@ namespace Refit.Tests
             }
         }
 
-        //[Fact(Skip = "Set runscopeUri field to your Runscope key in order to test this function.")]
-        [Fact]
+        [Fact(Skip = "Set runscopeUri field to your Runscope key in order to test this function.")]
+        //[Fact]
         public async Task MultipartUploadShouldWorkWithByteArray()
         {
             using (var stream = GetTestFileStream("Test Files/Test.pdf"))
@@ -93,8 +93,8 @@ namespace Refit.Tests
             }
         }
 
-        // [Fact(Skip = "Set runscopeUri field to your Runscope key in order to test this function.")]
-        [Fact]
+        [Fact(Skip = "Set runscopeUri field to your Runscope key in order to test this function.")]
+       // [Fact]
         public async Task MultipartUploadShouldWorkWithFileInfo()
         {
             var fileName = Path.GetTempFileName();
@@ -116,8 +116,8 @@ namespace Refit.Tests
             }
         }
 
-        //  [Fact(Skip = "Set runscopeUri field to your Runscope key in order to test this function.")]
-        [Fact]
+        [Fact(Skip = "Set runscopeUri field to your Runscope key in order to test this function.")]
+       // [Fact]
         public async Task MultipartUploadShouldWorkWithString()
         {
             const string text = "This is random text";
@@ -128,7 +128,8 @@ namespace Refit.Tests
             Assert.True(result.IsSuccessStatusCode);
         }
 
-        [Fact()]
+        [Fact(Skip = "Set runscopeUri field to your Runscope key in order to test this function.")]
+        //[Fact()]
         public async Task MultipartUploadShouldWorkWithBodyData()
         {
             var fileName = Path.GetTempFileName();
@@ -159,7 +160,8 @@ namespace Refit.Tests
            
         }
 
-        [Fact()]
+        [Fact(Skip = "Set runscopeUri field to your Runscope key in order to test this function.")]
+        //[Fact()]
         public async Task MultipartUploadShouldWorkWithJsonData()
         {
             var fileName = Path.GetTempFileName();
