@@ -276,7 +276,7 @@ namespace Refit
                 }
                 else
                 {
-                    var obj = new MultiFormDataDictionary(parameterName, multiPartDataValue.Value, settings);
+                    var obj = new MultipartFormDataDictionary(parameterName, multiPartDataValue.Value, settings);
                     foreach (var keyValuePair in obj)
                     {
                         var val = keyValuePair.Value as string;

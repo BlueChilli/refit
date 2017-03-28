@@ -38,7 +38,7 @@
   <ItemGroup>
     <Compile Include="Batching\BatchRequest.cs" />
     <Compile Include="Batching\BatchRequestImplementation.cs" />
-    <Compile Include="Batching\MultiFormDataDictionary.cs" />
+    <Compile Include="Batching\MultipartFormDataDictionary.cs" />
     <Compile Include="Batching\RequestBuilderImplementation.cs" />
     <Compile Include="Batching\UriExtensions.cs" />
     <Compile Include="HttpUtility.NetStandard.cs" />

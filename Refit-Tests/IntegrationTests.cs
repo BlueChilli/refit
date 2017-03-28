@@ -68,7 +68,7 @@ namespace Refit.Tests
         [Multipart]
         [Headers("Accept: */*")]
         [Post("/hazards")]
-        Task<Hazard> Create(MultiPartData<Hazard> hazard);
+        Task<Hazard> Create(MultipartData<Hazard> hazard);
 
         //[Multipart]
         //[Post("/hazards")]
@@ -79,7 +79,7 @@ namespace Refit.Tests
         Task<HttpResponseMessage> GetAccoutStatus();
 
         [Post("/hazards/ack")]
-        Task<HttpResponseMessage> Update(MultiPartData<IdItem> item);
+        Task<HttpResponseMessage> Update(MultipartData<IdItem> item);
     }
 
     public class BusinessDto
@@ -223,7 +223,7 @@ namespace Refit.Tests
 
             };
 
-            var r = await api.Create(MultiPartData<Hazard>.Create(hazard));
+            var r = await api.Create(MultipartData<Hazard>.Create(hazard));
             Assert.NotNull(r);
 
         }

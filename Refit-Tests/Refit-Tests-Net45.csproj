@@ -55,7 +55,7 @@
     <Compile Include="IntegrationTests.cs" />
     <Compile Include="InterfaceStubGenerator.cs" />
     <Compile Include="BatchRequestTests.cs" />
-    <Compile Include="MultiFormDataDictionaryTests.cs" />
+    <Compile Include="MultipartFormDataDictionaryTests.cs" />
     <Compile Include="MultiPartDataTests.cs" />
     <Compile Include="NamespaceCollisionApi.cs" />
     <Compile Include="RefitStubs.cs" />
