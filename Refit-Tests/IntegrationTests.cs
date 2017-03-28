@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Reactive.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -56,6 +57,8 @@ namespace Refit.Tests
         [JsonProperty("attachments")]
         public List<Attachment> attachments { get; set; }
 
+        [JsonProperty("imageFile")]
+        public FileInfo ImageFile { get; set; }
     }
 
     public class IdItem
@@ -67,12 +70,7 @@ namespace Refit.Tests
         [Multipart]
         [Headers("Accept: */*")]
         [Post("/hazards")]
-        Task<Hazard> Create(MultipartData<Hazard> hazard, [AliasAs("imageFile")] FileInfo imageFile);
-
-        //[Multipart]
-        //[Post("/hazards")]
-        //Task<Hazard> Create(string siteId, string name, [AliasAs("imageFile")] Stream image);
-
+        Task<Hazard> Create(MultipartData<Hazard> hazard);
 
         [Get("/account/status")]
         Task<HttpResponseMessage> GetAccoutStatus();
@@ -190,17 +188,17 @@ namespace Refit.Tests
                         contentPath = "https://www.youtube.com/2945kdf49fk"
                        
                     }
-                }
-
+                },
+                ImageFile = new FileInfo(@"C:\Temp\messenger-hover.png")
             };
 
-            var r = await api.Create(MultipartData<Hazard>.Create(hazard), new FileInfo(@"C:\Temp\messenger-hover.png"));
+            var r = await api.Create(MultipartData<Hazard>.Create(hazard));
             Assert.NotNull(r);
 
         }
 
         [Fact()]
-        public async Task MultipartBatchRequestShouldSucceed()
+        public async Task MultipartBatchAsyncRequestShouldSucceed()
         {
             const string apiKey = "F5311DE2-6F54-443E-8FC6-863AE944CE4A";
             const string userKey = "c7334a86-e4ba-454b-b7fa-c0a337a0a21d";
@@ -222,30 +220,66 @@ namespace Refit.Tests
 
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11;
             var builder = BatchRequestBuilder.For<IBatchApi>();
-            var req = builder.AddRequest(api => api.GetProfile())
+            var req = builder
+                    .AddRequest(api => api.Login(new Login()
+                    {
+                        Email = "max@bluechilli.com",
+                        Password = "123456"
+                    }))
+                    .AddRequest(api => api.GetProfile())
                     .AddRequest(api => api.GetCompany())
-                    .Build("/$batch/nonsequential");
+                    .Build("/$batch/sequential");
 
             var client = RestService.For<IBatchApi>(url, settings);
 
-            try
+            var r = await client.BatchAsync(req);
+            Assert.NotNull(r);
+            var c = r.GetResults<Company>(nameof(IBatchApi.GetCompany)).FirstOrDefault();
+            Assert.NotNull(c);
+            Assert.Equal("Max Company", c.Value.Name);
+
+        }
+
+        [Fact()]
+        public async Task MultipartBatchObservableRequestShouldSucceed()
+        {
+            const string apiKey = "F5311DE2-6F54-443E-8FC6-863AE944CE4A";
+            const string userKey = "c7334a86-e4ba-454b-b7fa-c0a337a0a21d";
+
+            var url = "https://benchon-dev.azurewebsites.net/api";
+
+            var container = new CookieContainer();
+            var settings = new RefitSettings()
             {
-                var user = await client.Login(new Login()
+                JsonSerializerSettings = new JsonSerializerSettings()
                 {
-                    Email = "max@bluechilli.com",
-                    Password = "123456"
-                });
-                var r = await client.BatchAsync(req);
-                Assert.NotNull(r);
-                var c = r.GetResults<Company>(nameof(IBatchApi.GetCompany)).FirstOrDefault();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
-          
-            //Assert.NotNull(r.GetResult<Company>(nameof(IBatchApi.GetCompany)));
+                    ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                    Converters = { new StringEnumConverter(), new IsoDateTimeConverter() },
+                    DateFormatHandling = DateFormatHandling.IsoDateFormat,
+                    DateTimeZoneHandling = DateTimeZoneHandling.Utc
+                },
+                HttpMessageHandlerFactory = () => new AuthHandler(apiKey, userKey, container)
+            };
+
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11;
+            var builder = BatchRequestBuilder.For<IBatchApi>();
+            var req = builder
+                    .AddRequest(api => api.Login(new Login()
+                    {
+                        Email = "max@bluechilli.com",
+                        Password = "123456"
+                    }))
+                    .AddRequest(api => api.GetProfile())
+                    .AddRequest(api => api.GetCompany())
+                    .Build("/$batch/sequential");
+
+            var client = RestService.For<IBatchApi>(url, settings);
+
+            var r = await client.Batch(req);
+            Assert.NotNull(r);
+            var c = r.GetResults<Company>(nameof(IBatchApi.GetCompany)).FirstOrDefault();
+            Assert.NotNull(c);
+            Assert.Equal("Max Company", c.Value.Name);
 
         }
     }

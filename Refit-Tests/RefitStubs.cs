@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Refit;
 using System.IO;
 using System.Net;
+using System.Reactive.Linq;
 using System.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -23,7 +24,6 @@ using Refit.Generator;
 using System.Reflection;
 using SomeType = CollisionA.SomeType;
 using CollisionB;
-using System.Reactive.Linq;
 using RichardSzalay.MockHttp;
 
 /* ******** Hey You! *********
@@ -152,9 +152,9 @@ namespace Refit.Tests
             Client = client;
         }
 
-        public virtual Task<Hazard> Create(MultipartData<Hazard> hazard,FileInfo imageFile)
+        public virtual Task<Hazard> Create(MultipartData<Hazard> hazard)
         {
-            var arguments = new object[] { hazard,imageFile };
+            var arguments = new object[] { hazard };
             return (Task<Hazard>) methodImpls["Create"](Client, arguments);
         }
 

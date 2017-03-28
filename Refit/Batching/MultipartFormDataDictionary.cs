@@ -138,7 +138,7 @@ namespace Refit
                 {
                     var dict = obj as IDictionary;
                     int index = 0;
-                    var pref = !String.IsNullOrWhiteSpace(prefix) ? prefix.ToCamelCase() : _paramName.ToCamelCase();
+                    var pref = !String.IsNullOrWhiteSpace(prefix) ? prefix.ToCamelCase() : _paramName;
 
                     foreach (var key in dict.Keys)
                     {
@@ -155,7 +155,7 @@ namespace Refit
                 {
                     var list = obj as ICollection;
                     int index = 0;
-                    var pref = !String.IsNullOrWhiteSpace(prefix) ? prefix.ToCamelCase() : _paramName.ToCamelCase();
+                    var pref = !String.IsNullOrWhiteSpace(prefix) ? prefix.ToCamelCase() : _paramName;
 
                     foreach (var indexedPropValue in list)
                     {
@@ -172,10 +172,11 @@ namespace Refit
                     foreach (var propertyInfo in props)
                     {
                         var jsonProperty = propertyInfo.GetCustomAttribute<JsonPropertyAttribute>();
-                        var propertyName = jsonProperty != null ? jsonProperty.PropertyName : propertyInfo.Name;
+                        var aliasAs = propertyInfo.GetCustomAttribute<AliasAsAttribute>();
+                        var propertyName = aliasAs != null ?  aliasAs.Name : (jsonProperty != null ? jsonProperty.PropertyName : propertyInfo.Name.ToCamelCase());
                         string propName = String.IsNullOrWhiteSpace(prefix)
                             ? propertyName
-                            : $"{prefix.ToCamelCase()}[{propertyName.ToCamelCase()}]";
+                            : $"{prefix.ToCamelCase()}[{propertyName}]";
 
                         var attachmentName = propertyInfo.GetCustomAttribute<AttachmentNameAttribute>();
                         var fileName = attachmentName != null ? attachmentName.Name : alternativeName;
@@ -186,7 +187,7 @@ namespace Refit
                 }
                 else
                 {
-                    var pref = !String.IsNullOrWhiteSpace(prefix) ? prefix.ToCamelCase() : _paramName.ToCamelCase();
+                    var pref = !String.IsNullOrWhiteSpace(prefix) ? prefix.ToCamelCase() : _paramName;
                     propertiesList.Add(new KeyValuePair<FormDataKeyItem, object>(new FormDataKeyItem(pref, alternativeName), obj));
                 }
             }

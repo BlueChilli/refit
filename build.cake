@@ -67,7 +67,7 @@ var githubUrl = string.Format("https://github.com/{0}/{1}", githubOwner, githubR
 var licenceUrl = string.Format("{0}/blob/master/LICENSE", githubUrl);
 
 // Version
-var version = "3.0.1";
+var version = "3.0.2";
 var majorMinorPatch = version;
 var semVersion = version;
 var informationalVersion = version;
@@ -333,7 +333,7 @@ Task("Package")
 			var packagePath = string.Format("./Refit/{0}.nuspec", package);
 
 			// Push the package.
-			Package(packagePath, "./");
+			Package(packagePath, "./Refit");
 		}
 	};
 

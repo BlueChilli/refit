@@ -106,7 +106,8 @@ namespace Refit
                     }
                     else
                     {
-                        throw new ArgumentException($"RequestId is not in the response header. Sorry can not parse it !!!!");
+                        // this should never happens
+                        throw new ArgumentException($"RequestId is not in the response header. Sorry can not parse it !!!! Please check that you are sending requesetId in request Header.");
                     }
 
                 }
