@@ -56,6 +56,7 @@ namespace Refit.Tests
         [JsonProperty("attachments")]
         public List<Attachment> attachments { get; set; }
 
+        public FileInfo ImageFile { get; set; }
     }
 
     public class IdItem
@@ -67,7 +68,7 @@ namespace Refit.Tests
         [Multipart]
         [Headers("Accept: */*")]
         [Post("/hazards")]
-        Task<Hazard> Create(MultiPartData<Hazard> hazard, [AliasAs("imageFile")] FileInfo imageFile);
+        Task<Hazard> Create(MultiPartData<Hazard> hazard);
 
         //[Multipart]
         //[Post("/hazards")]
@@ -138,7 +139,7 @@ namespace Refit.Tests
         public string AgeGroup { get; set; }
     }
 
-    public interface IBlastMeApi
+    public interface IBlastMeApi : IAsyncBatchable, IObservableBatchable
     {
 
         [Get("/account/profile")]
@@ -177,10 +178,12 @@ namespace Refit.Tests
         [Fact]
         public async Task ShouldSuccessfullyCallHazardApi()
         {
+            //const string apiKey = "CF5252EB-4537-4460-A1F6-6D9BF0DBDBFA";
             const string apiKey = "CF5252EB-4537-4460-A1F6-6D9BF0DBDBFA";
             const string userKey = "0872d545-0639-4847-9dda-bc0e31bd871a";
-
             var url = "https://dev.bluechilli.com/safetycompass/api";
+            //const string userKey = "096035ac-535b-4d10-aa4f-ad6bceead7d4";
+           // var url = "https://local.bluechilli.com/safetycompass/api";
 
 
             var settings = new RefitSettings()
@@ -195,12 +198,11 @@ namespace Refit.Tests
                 HttpMessageHandlerFactory = () => new AuthHandler(apiKey, userKey)
             };
 
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11;
-            var api = RestService.For<IHazardApi>(url, settings);
+           var api = RestService.For<IHazardApi>(url, settings);
 
             var hazard = new Hazard()
             {
-                siteId = 8,
+                siteId = 4,
                 name = "BlueChilli7",
                 latitude = -33.8716715,
                 longitude = 151.20616129999996,
@@ -216,11 +218,12 @@ namespace Refit.Tests
                         contentPath = "https://www.youtube.com/2945kdf49fk"
                        
                     }
-                }
+                },
+                ImageFile = new FileInfo(@"C:\Temp\icon.png")
 
             };
 
-            var r = await api.Create(MultiPartData<Hazard>.Create(hazard), new FileInfo(@"C:\Temp\messenger-hover.png"));
+            var r = await api.Create(MultiPartData<Hazard>.Create(hazard));
             Assert.NotNull(r);
 
         }
@@ -231,7 +234,7 @@ namespace Refit.Tests
             const string apiKey = "D2FC4BB2-6E9A-4204-9075-013B7C748159";
             const string userKey = "c7334a86-e4ba-454b-b7fa-c0a337a0a21d";
 
-            var url = "https://dev.bluechilli.com/blastme/api";
+            var url = "https://dev.bluechilli.com/blastme/api/v1";
 
 
             var settings = new RefitSettings()
@@ -246,34 +249,15 @@ namespace Refit.Tests
                 HttpMessageHandlerFactory = () => new AuthHandler(apiKey, userKey)
             };
 
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11;
-            var api = RestService.For<IHazardApi>(url, settings);
+            var builder = BatchRequestBuilder.For<IBlastMeApi>();
+            var rq = builder.AddRequest(api => api.GetNumberSentOfOffers(2))
+                .AddRequest(api => api.GetBusiness(2))
+                .Build("/$batch");
 
-            var hazard = new Hazard()
-            {
-                siteId = 8,
-                name = "BlueChilli7",
-                latitude = -33.8716715,
-                longitude = 151.20616129999996,
-                altitude = 24,
-                hazardTypeId = 1,
-                notes = "Lorem ipsum dolor sit amet, ",
-                attachments = new List<Attachment>()
-                {
-                    new Attachment()
-                    {
-                        name = "Attach1",
-                        attachmentType = "VideoLink",
-                        contentPath = "https://www.youtube.com/2945kdf49fk"
+            var client = RestService.For<IBlastMeApi>(url, settings);
 
-                    }
-                }
-
-            };
-
-            //var r = await api.Create(MultiPartData<Hazard>.Create(hazard));
-           // Assert.NotNull(r);
-
+            var r = await client.BatchAsync(rq);
+            Assert.NotNull(r);
 
         }
     }

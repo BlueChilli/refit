@@ -25,7 +25,7 @@ namespace Refit.Tests
     {
         public List<int> Ids { get; set; }
     }
-    public interface IRunscopeApi : IAsyncBatchable, IObservableBatchable
+    public interface IRunscopeApi
     {
         [Multipart]
         [Post("/")]

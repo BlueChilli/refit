@@ -152,9 +152,9 @@ namespace Refit.Tests
             Client = client;
         }
 
-        public virtual Task<Hazard> Create(MultiPartData<Hazard> hazard,FileInfo imageFile)
+        public virtual Task<Hazard> Create(MultiPartData<Hazard> hazard)
         {
-            var arguments = new object[] { hazard,imageFile };
+            var arguments = new object[] { hazard };
             return (Task<Hazard>) methodImpls["Create"](Client, arguments);
         }
 

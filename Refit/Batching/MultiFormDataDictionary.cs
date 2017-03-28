@@ -159,7 +159,7 @@ namespace Refit
 
                     foreach (var indexedPropValue in list)
                     {
-                        string indexedPropName = String.Format("{0}[{1}]", pref, index);
+                        string indexedPropName = $"{pref}[{index}]";
                         FillFlatPropertiesListFromObject(indexedPropValue, indexedPropName, alternativeName, propertiesList);
 
                         index++;
@@ -171,17 +171,14 @@ namespace Refit
                   
                     foreach (var propertyInfo in props)
                     {
+                        var jsonProperty = propertyInfo.GetCustomAttribute<JsonPropertyAttribute>();
+                        var propertyName = jsonProperty != null ? jsonProperty.PropertyName : propertyInfo.Name;
                         string propName = String.IsNullOrWhiteSpace(prefix)
-                            ? propertyInfo.Name
-                            : String.Format("{0}[{1}]", prefix.ToCamelCase(), propertyInfo.Name.ToCamelCase());
+                            ? propertyName
+                            : $"{prefix.ToCamelCase()}[{propertyName.ToCamelCase()}]";
 
                         var attachmentName = propertyInfo.GetCustomAttribute<AttachmentNameAttribute>();
-                        var fileName = alternativeName;
-                        if (attachmentName != null)
-                        {
-                            fileName = attachmentName.Name;
-                        }
-
+                        var fileName = attachmentName != null ? attachmentName.Name : alternativeName;
                         object propValue = propertyInfo.GetValue(obj);
 
                         FillFlatPropertiesListFromObject(propValue, propName, fileName, propertiesList);
