@@ -25,7 +25,7 @@ namespace Refit.Tests
     {
         public List<int> Ids { get; set; }
     }
-    public interface IRunscopeApi
+    public interface IRunscopeApi : IAsyncBatchable, IObservableBatchable
     {
         [Multipart]
         [Post("/")]
@@ -51,10 +51,15 @@ namespace Refit.Tests
         [Post("/")]
         Task<HttpResponseMessage> UploadFileInfoWithJsonObject(MultiPartData<TestObject> testObject, FileInfo anotherFile);
 
-    
+        [Post("/")]
+        Task<HttpResponseMessage> SendMessage(string message);
+
+        [Get("/")]
+        Task<HttpResponseMessage> GetMessage();
+
     }
 
-   
+
     public class MultipartTests
     {
         // To test: sign up for a Runscope account (it's free, despite them implying that's its only good for 30 days)
@@ -198,6 +203,7 @@ namespace Refit.Tests
 
         }
 
+      
         private static Stream GetTestFileStream(string relativeFilePath)
         {
             const char namespaceSeparator = '.';

@@ -55,7 +55,8 @@ namespace Refit.Tests
 
         [JsonProperty("attachments")]
         public List<Attachment> attachments { get; set; }
-   }
+
+    }
 
     public class IdItem
     {
@@ -66,7 +67,7 @@ namespace Refit.Tests
         [Multipart]
         [Headers("Accept: */*")]
         [Post("/hazards")]
-        Task<Hazard> Create(MultiPartData<Hazard> hazard, [AliasAs("imageFile")] Stream image);
+        Task<Hazard> Create(MultiPartData<Hazard> hazard, [AliasAs("imageFile")] FileInfo imageFile);
 
         //[Multipart]
         //[Post("/hazards")]
@@ -80,6 +81,77 @@ namespace Refit.Tests
         Task<HttpResponseMessage> Update(MultiPartData<IdItem> item);
     }
 
+    public class BusinessDto
+    {
+
+        [JsonProperty("id")]
+        public int Id { get; set; }
+
+        [JsonProperty("guid")]
+        public string Guid { get; set; }
+
+        [JsonProperty("logoPath")]
+        public string LogoPath { get; set; }
+
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
+        [JsonProperty("phone")]
+        public string Phone { get; set; }
+
+        [JsonProperty("followedByCount")]
+        public int FollowedByCount { get; set; }
+
+        [JsonProperty("webAddress")]
+        public string WebAddress { get; set; }
+
+    }
+
+    public class ProfileDto
+    {
+
+        [JsonProperty("accountGUID")]
+        public string AccountGUID { get; set; }
+
+        [JsonProperty("isProfileComplete")]
+        public bool IsProfileComplete { get; set; }
+
+        [JsonProperty("profilePhotoPath")]
+        public string ProfilePhotoPath { get; set; }
+
+        [JsonProperty("firstName")]
+        public string FirstName { get; set; }
+
+        [JsonProperty("lastName")]
+        public string LastName { get; set; }
+
+        [JsonProperty("phone")]
+        public string Mobile { get; set; }
+
+        [JsonProperty("email")]
+        public string Email { get; set; }
+
+        [JsonProperty("gender")]
+        public string Gender { get; set; }
+
+        [JsonProperty("ageGroup")]
+        public string AgeGroup { get; set; }
+    }
+
+    public interface IBlastMeApi
+    {
+
+        [Get("/account/profile")]
+        IObservable<ProfileDto> GetProfile(string userKey);
+
+        
+        [Get("/business/{businessId}")]
+        IObservable<BusinessDto> GetBusiness(int businessId);
+
+        [Get("/sentoffer/totalcount")]
+        Task<int> GetNumberSentOfOffers(int status);
+
+    }
     public class AuthHandler : DelegatingHandler
     {
         private readonly string _apikey;
@@ -148,24 +220,60 @@ namespace Refit.Tests
 
             };
 
-            try
-            {
-               // var r = await api.GetAccoutStatus();
-               var r = await api.Create(MultiPartData<Hazard>.Create(hazard),null);
-             //  var r = await api.Create("8", "hello", null);
+            var r = await api.Create(MultiPartData<Hazard>.Create(hazard), new FileInfo(@"C:\Temp\messenger-hover.png"));
+            Assert.NotNull(r);
 
-                //var r = await api.Update(MultiPartData<IdItem>.Create(new IdItem()
-                //{
-                //    Id = 555
-                //}));
+        }
 
-                //var t = await r.Content.ReadAsStringAsync();
-            }
-            catch (Exception e)
+        [Fact()]
+        public async Task MultipartBatchRequestShouldSucceed()
+        {
+            const string apiKey = "D2FC4BB2-6E9A-4204-9075-013B7C748159";
+            const string userKey = "c7334a86-e4ba-454b-b7fa-c0a337a0a21d";
+
+            var url = "https://dev.bluechilli.com/blastme/api";
+
+
+            var settings = new RefitSettings()
             {
-                Console.WriteLine(e);
-                throw;
-            }
+                JsonSerializerSettings = new JsonSerializerSettings()
+                {
+                    ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                    Converters = { new StringEnumConverter(), new IsoDateTimeConverter() },
+                    DateFormatHandling = DateFormatHandling.IsoDateFormat,
+                    DateTimeZoneHandling = DateTimeZoneHandling.Utc
+                },
+                HttpMessageHandlerFactory = () => new AuthHandler(apiKey, userKey)
+            };
+
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11;
+            var api = RestService.For<IHazardApi>(url, settings);
+
+            var hazard = new Hazard()
+            {
+                siteId = 8,
+                name = "BlueChilli7",
+                latitude = -33.8716715,
+                longitude = 151.20616129999996,
+                altitude = 24,
+                hazardTypeId = 1,
+                notes = "Lorem ipsum dolor sit amet, ",
+                attachments = new List<Attachment>()
+                {
+                    new Attachment()
+                    {
+                        name = "Attach1",
+                        attachmentType = "VideoLink",
+                        contentPath = "https://www.youtube.com/2945kdf49fk"
+
+                    }
+                }
+
+            };
+
+            //var r = await api.Create(MultiPartData<Hazard>.Create(hazard));
+           // Assert.NotNull(r);
+
 
         }
     }

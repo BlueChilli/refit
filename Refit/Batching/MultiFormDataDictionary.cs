@@ -30,11 +30,10 @@ namespace Refit
             if (type.IsAssignableTo(typeof(Stream)) ||
                 type.IsAssignableTo(typeof(FileInfo)) ||
                 type.IsAssignableTo(typeof(byte[])) ||
-                 type.IsAssignableTo(typeof(string)) ||
                 type.IsAssignableTo(typeof(IEnumerable<Stream>))||
                  type.IsAssignableTo(typeof(IEnumerable<FileInfo>)) ||
-                  type.IsAssignableTo(typeof(IEnumerable<byte[]>)) ||
-                type.IsAssignableTo(typeof(IEnumerable<string>)))
+                  type.IsAssignableTo(typeof(IEnumerable<byte[]>))
+               )
             {
                 throw new ArgumentException($"Unexpected data type in a Multipart Data. {nameof(data)} can not be a type of or collection of String, Stream, FileInfo or Byte array");
             }
@@ -50,25 +49,166 @@ namespace Refit
         }
     }
 
-    internal static class TypeExtensions
+    struct FormDataKeyItem
     {
+        public FormDataKeyItem(string name)
+        {
+            Name = name;
+            FileName = String.Empty;
+        }
+        public FormDataKeyItem(string name, string fileName)
+        {
+            Name = name;
+            FileName = fileName;
+        }
+
+        public string Name { get;}
+        public string FileName { get; }
+    }
+ 
+    class MultiFormDataDictionary : Dictionary<FormDataKeyItem, object>
+    {
+        private readonly string _paramName;
         private static readonly Dictionary<Type, PropertyInfo[]> propertyCache
                 = new Dictionary<Type, PropertyInfo[]>();
 
-        internal static PropertyInfo[] GetReadableProperties(this Type type)
+        public MultiFormDataDictionary(string paramName, object source, RefitSettings settings)
+        {
+            this._paramName = paramName;
+            if (source == null) return;
+
+            var dictionary = source as IDictionary;
+
+            if (dictionary != null)
+            {
+                var list = new List<KeyValuePair<FormDataKeyItem, object>>();
+                foreach (var key in dictionary.Keys)
+                {
+                    list.Add(new KeyValuePair<FormDataKeyItem, object>(new FormDataKeyItem(key as string), dictionary[key]));
+                }
+                AddToFormData(settings, list);
+                return;
+            }
+
+            var r = ConvertObjectToFlatPropertiesList(String.Empty, source);
+
+            AddToFormData(settings, r);
+        }
+
+        private void AddToFormData(RefitSettings settings, List<KeyValuePair<FormDataKeyItem, object>> r)
+        {
+            foreach (var item in r)
+            {
+                var t = item.Value.GetType();
+
+                if (CanConvertToString(t))
+                {
+                    var convertable = item.Value as IStringConvertable;
+                    var val = convertable != null ? convertable.ConvertToString() : item.Value;
+                    this.Add(item.Key, $"{val}");
+                }
+                else if (IsFile(t))
+                {
+                    this.Add(item.Key, item.Value);
+                }
+                else
+                {
+                    var o = JsonConvert.SerializeObject(item.Value, settings.JsonSerializerSettings);
+                    o = o.Replace("\"", "");
+                    this.Add(item.Key, o);
+                }
+            }
+        }
+
+        private List<KeyValuePair<FormDataKeyItem, object>> ConvertObjectToFlatPropertiesList(string paramName, object value)
+        {
+            var propertiesList = new List<KeyValuePair<FormDataKeyItem, object>>();
+            FillFlatPropertiesListFromObject(value, paramName, String.Empty, propertiesList);
+
+            return propertiesList;
+        }
+
+        private void FillFlatPropertiesListFromObject(object obj, string prefix, string alternativeName, List<KeyValuePair<FormDataKeyItem, object>> propertiesList)
+        {
+            if (obj != null)
+            {
+                Type type = obj.GetType();
+
+                if (obj is IDictionary)
+                {
+                    var dict = obj as IDictionary;
+                    int index = 0;
+                    var pref = !String.IsNullOrWhiteSpace(prefix) ? prefix.ToCamelCase() : _paramName.ToCamelCase();
+
+                    foreach (var key in dict.Keys)
+                    {
+                        string indexedKeyPropName = String.Format("{0}[{1}][key]", pref, index);
+                        FillFlatPropertiesListFromObject(key, indexedKeyPropName, alternativeName, propertiesList);
+
+                        string indexedValuePropName = String.Format("{0}[{1}][value]", pref, index);
+                        FillFlatPropertiesListFromObject(dict[key], indexedValuePropName, alternativeName, propertiesList);
+
+                        index++;
+                    }
+                }
+                else if (obj is ICollection)
+                {
+                    var list = obj as ICollection;
+                    int index = 0;
+                    var pref = !String.IsNullOrWhiteSpace(prefix) ? prefix.ToCamelCase() : _paramName.ToCamelCase();
+
+                    foreach (var indexedPropValue in list)
+                    {
+                        string indexedPropName = String.Format("{0}[{1}]", pref, index);
+                        FillFlatPropertiesListFromObject(indexedPropValue, indexedPropName, alternativeName, propertiesList);
+
+                        index++;
+                    }
+                }
+                else if (IsCustomNonEnumerableType(type))
+                {
+                    var props = GetPublicAccessibleProperties(type);
+                  
+                    foreach (var propertyInfo in props)
+                    {
+                        string propName = String.IsNullOrWhiteSpace(prefix)
+                            ? propertyInfo.Name
+                            : String.Format("{0}[{1}]", prefix.ToCamelCase(), propertyInfo.Name.ToCamelCase());
+
+                        var attachmentName = propertyInfo.GetCustomAttribute<AttachmentNameAttribute>();
+                        var fileName = alternativeName;
+                        if (attachmentName != null)
+                        {
+                            fileName = attachmentName.Name;
+                        }
+
+                        object propValue = propertyInfo.GetValue(obj);
+
+                        FillFlatPropertiesListFromObject(propValue, propName, fileName, propertiesList);
+                    }
+                }
+                else
+                {
+                    var pref = !String.IsNullOrWhiteSpace(prefix) ? prefix.ToCamelCase() : _paramName.ToCamelCase();
+                    propertiesList.Add(new KeyValuePair<FormDataKeyItem, object>(new FormDataKeyItem(pref, alternativeName), obj));
+                }
+            }
+        }
+
+        private PropertyInfo[] GetReadableProperties(Type type)
         {
             return type.GetProperties()
                 .Where(p => p.CanRead)
                 .ToArray();
         }
 
-        internal static IEnumerable<PropertyInfo> GetPublicAccessibleProperties(this Type type)
+        private IEnumerable<PropertyInfo> GetPublicAccessibleProperties( Type type)
         {
             lock (propertyCache)
             {
                 if (!propertyCache.ContainsKey(type))
                 {
-                    propertyCache[type] = type.GetReadableProperties();
+                    propertyCache[type] = GetReadableProperties(type);
                 }
 
 
@@ -81,7 +221,7 @@ namespace Refit
 
         }
 
-        internal static bool IsCustomNonEnumerableType(this Type type)
+        private bool IsCustomNonEnumerableType(Type type)
         {
             var nullType = Nullable.GetUnderlyingType(type);
             if (nullType != null)
@@ -99,105 +239,34 @@ namespace Refit
                    && type != typeof(TimeSpan)
                    && type != typeof(string)
                    && !type.IsPrimitive()
+                   && !IsFile(type)
+                   && !type.IsAssignableTo(typeof(IStringConvertable))
                    && !type.GetInterfaces().Contains(typeof(IEnumerable));
-        }
-    }
-    class MultiFormDataDictionary : Dictionary<string, string>
-    {
-        public MultiFormDataDictionary(string paramName, object source, RefitSettings settings)
-        {
-            if (source == null) return;
-
-            var dictionary = source as IDictionary;
-
-            if (dictionary != null)
-            {
-                foreach (var key in dictionary.Keys)
-                {
-                    Add(key.ToString(), string.Format("{0}", dictionary[key]));
-                }
-
-                return;
-            }
-
-            var r = ConvertObjectToFlatPropertiesList(paramName, source);
-
-            foreach (var item in r)
-            {
-                var t = item.Value.GetType();
-
-                if ((t.IsPrimitive() || t == typeof(string)) && t != typeof(DateTime) && t != typeof(DateTimeOffset))
-                {
-                    this.Add(item.Key, $"{item.Value}");
-                }
-                else
-                {
-                    var o = JsonConvert.SerializeObject(item.Value, settings.JsonSerializerSettings);
-                     o = o.Replace("\"", "");
-                    this.Add(item.Key, o);
-                }
-            }
         }
 
        
-        private List<KeyValuePair<string, object>> ConvertObjectToFlatPropertiesList(string paramName, object value)
+        private bool CanConvertToString(Type type)
         {
-            var propertiesList = new List<KeyValuePair<string, object>>();
-            FillFlatPropertiesListFromObject(value, paramName, propertiesList);
+            if (type.IsAssignableTo(typeof(IStringConvertable)))
+            {
+                return true;
+            }
 
-            return propertiesList;
+            return type != typeof(DateTime)
+                    && type != typeof(DateTimeOffset)
+                    && !IsFile(type)
+                    && (type.IsPrimitive() || type == typeof(string) || type == typeof(Guid) || type == typeof(TimeSpan));
+
         }
 
-        private void FillFlatPropertiesListFromObject(object obj, string prefix, List<KeyValuePair<string, object>> propertiesList)
+        public static bool IsFile(Type type)
         {
-            if (obj != null)
-            {
-                Type type = obj.GetType();
-
-                if (obj is IDictionary)
-                {
-                    var dict = obj as IDictionary;
-                    int index = 0;
-                    foreach (var key in dict.Keys)
-                    {
-                        string indexedKeyPropName = String.Format("{0}[{1}][key]", prefix.ToCamelCase(), index);
-                        FillFlatPropertiesListFromObject(key, indexedKeyPropName, propertiesList);
-
-                        string indexedValuePropName = String.Format("{0}[{1}][value]", prefix.ToCamelCase(), index);
-                        FillFlatPropertiesListFromObject(dict[key], indexedValuePropName, propertiesList);
-
-                        index++;
-                    }
-                }
-                else if (obj is ICollection)
-                {
-                    var list = obj as ICollection;
-                    int index = 0;
-                    foreach (var indexedPropValue in list)
-                    {
-                        string indexedPropName = String.Format("{0}[{1}]", prefix.ToCamelCase(), index);
-                        FillFlatPropertiesListFromObject(indexedPropValue, indexedPropName, propertiesList);
-
-                        index++;
-                    }
-                }
-                else if (type.IsCustomNonEnumerableType())
-                {
-                    foreach (var propertyInfo in type.GetPublicAccessibleProperties())
-                    {
-                        string propName = String.IsNullOrWhiteSpace(prefix)
-                            ? propertyInfo.Name
-                            : String.Format("{0}[{1}]", prefix.ToCamelCase(), propertyInfo.Name.ToCamelCase());
-                        object propValue = propertyInfo.GetValue(obj);
-
-                        FillFlatPropertiesListFromObject(propValue, propName, propertiesList);
-                    }
-                }
-                else
-                {
-                    propertiesList.Add(new KeyValuePair<string, object>(prefix.ToCamelCase(), obj));
-                }
-            }
+            return type == typeof(Stream)
+#if !NETFX_CORE
+                   || type == typeof(FileInfo);
+#else 
+            ;
+#endif
         }
     }
 
@@ -211,5 +280,10 @@ namespace Refit
             }
             return source;
         }
+    }
+
+    public interface IStringConvertable
+    {
+        string ConvertToString();
     }
 }

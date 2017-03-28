@@ -30,12 +30,14 @@ namespace Refit
         private readonly RefitSettings _settings;
         private readonly IRequestBuilder _builder;
         private readonly List<RequestInfo> _requests;
+        private readonly Dictionary<string, string> _headers;
        
         internal BatchRequestBuilder(RefitSettings settings = null)
         {
             _settings = settings;
             _builder = RequestBuilder.ForType<T>(settings);
             _requests = new List<RequestInfo>();
+            _headers = new Dictionary<string, string>();
         }
         
         /// <summary>
@@ -61,13 +63,76 @@ namespace Refit
                 throw new ArgumentNullException(nameof(path));
             }
 
-            var r = new BatchRequest<T>(path, _requests.ToList(), _settings);
+            var r = new BatchRequest<T>(path, _requests.ToList(), _settings, _headers);
             r.RestResultTaskFunc = _builder.BuildRestResultTaskFuncForBatch(r);
             r.RestResultRxFunc = _builder.BuildRestResultRxFuncForBatch(r);
-            _requests.Clear();
+            Cleanup();
             return r;
         }
 
+        private void Cleanup()
+        {
+            this._requests.Clear();
+            this._headers.Clear();
+        }
+
+        public IBatchRequestBuilder<T> AddRequestWithLabel<TRes>(string label, Expression<Func<T, TRes>> expression)
+        {
+            var body = (MethodCallExpression)expression.Body;
+            var parameterList = new List<object>();
+            var methodName = body.Method.Name;
+
+            foreach (var argument in body.Arguments)
+            {
+                var value = ExtractParameterValue(argument);
+                parameterList.Add(value);
+            }
+
+            this.AddRequestWithLabel(label, methodName, parameterList.ToArray());
+
+            return this;
+        }
+
+        public IBatchRequestBuilder<T> AddRequestWithLabel(string label, string methodName, params object[] paramters)
+        {
+
+            if (methodName == nameof(IAsyncBatchable.BatchAsync) || methodName == nameof(IObservableBatchable.Batch))
+            {
+                return this;
+            }
+
+            var requestFunc = _builder.BuildRequestFuncForMethod(methodName);
+
+            if (!String.IsNullOrWhiteSpace(label) && _requests.Any(m => m.Label == label))
+            {
+                throw new ArgumentException($"{nameof(label)} must be unique within the requests");
+            }
+
+            _requests.Add(new RequestInfo()
+            {
+                Label = label,
+                Method = methodName,
+                ParameterList = paramters,
+                RequestMessageFactory = requestFunc
+            });
+
+            return this;
+        }
+
+        public IBatchRequestBuilder<T> AddHeader(KeyValuePair<string, string> header)
+        {
+
+            if (!_headers.ContainsKey(header.Key))
+            {
+                _headers.Add(header.Key, header.Value);
+            }
+            else
+            {
+                _headers[header.Key] = header.Value;
+            }
+
+            return this;
+        }
 
         private static object ExtractParameterValue(Expression expression)
         {
@@ -115,48 +180,7 @@ namespace Refit
             return Expression.Lambda(exp).Compile().DynamicInvoke(); ;
         }
 
-        public IBatchRequestBuilder<T> AddRequestWithLabel<TRes>(string label, Expression<Func<T, TRes>> expression)
-        {
-            var body = (MethodCallExpression)expression.Body;
-            var parameterList = new List<object>();
-            var methodName = body.Method.Name;
-
-            foreach (var argument in body.Arguments)
-            {
-                var value = ExtractParameterValue(argument);
-                parameterList.Add(value);
-            }
-
-            this.AddRequestWithLabel(label, methodName, parameterList.ToArray());
-
-            return this;
-        }
-
-        public IBatchRequestBuilder<T> AddRequestWithLabel(string label, string methodName, params object[] paramters)
-        {
-          
-            if (methodName == nameof(IAsyncBatchable.BatchAsync) || methodName == nameof(IObservableBatchable.Batch))
-            {
-                return this;
-            }
-
-            var requestFunc = _builder.BuildRequestFuncForMethod(methodName);
-
-            if (!String.IsNullOrWhiteSpace(label) && _requests.Any(m => m.Label == label))
-            {
-                throw new ArgumentException($"{nameof(label)} must be unique within the requests");
-            }
-
-            _requests.Add(new RequestInfo()
-            {
-                Label = label,
-                Method = methodName,
-                ParameterList = paramters,
-                RequestMessageFactory = requestFunc
-            });
-
-            return this;
-        }
+       
     }
 
     class RequestInfo
@@ -171,13 +195,15 @@ namespace Refit
     {
         protected readonly List<RequestInfo> _requests;
         private readonly RefitSettings _refitSetting;
+        private readonly Dictionary<string, string> _headers;
         public Func<HttpClient, CancellationToken, Task<IBatchResponse>> RestResultTaskFunc { get; internal set; }
         public Func<HttpClient, CancellationToken, IObservable<IBatchResponse>> RestResultRxFunc { get; internal set;}
 
-        internal BatchRequest(string path, List<RequestInfo> requests, RefitSettings refitSetting)
+        internal BatchRequest(string path, List<RequestInfo> requests, RefitSettings refitSetting, Dictionary<string, string> headers)
         {
             _requests = requests;
            _refitSetting = refitSetting;
+            this._headers = headers;
             Path = path;
 
         }
@@ -185,6 +211,8 @@ namespace Refit
 
         internal List<RequestInfo> Requests => _requests;
         internal RefitSettings RefitSettings => _refitSetting;
+        internal IDictionary<string, string> Headers => _headers;
+
         internal BatchResponse CreateBatchResponse()
         {
             return new BatchResponse(this.Requests.Select(m => m.Method).Distinct());
@@ -196,7 +224,7 @@ namespace Refit
 
     class BatchRequest<T> : BatchRequest, IBatchRequest<T> where T : IBatchable
     {
-        internal BatchRequest(string path, List<RequestInfo> requests, RefitSettings refitSettings) : base(path, requests, refitSettings)
+        internal BatchRequest(string path, List<RequestInfo> requests, RefitSettings refitSettings, Dictionary<string, string> headers) : base(path, requests, refitSettings, headers)
         {
            
         }

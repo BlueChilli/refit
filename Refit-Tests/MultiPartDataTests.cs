@@ -50,7 +50,6 @@ namespace Refit.Tests
         [TestDataSet(typeof(MultiPartDataTests), nameof(StreamData))]
         [TestDataSet(typeof(MultiPartDataTests), nameof(FileInfoData))]
         [TestDataSet(typeof(MultiPartDataTests), nameof(BytesData))]
-        [TestDataSet(typeof(MultiPartDataTests), nameof(StringListData))]
         public void Ctr_ShouldThrow_IfAnyOfDataContainsFileRelatedObjectTypes(object data)
         {
             var taskFuncMi = GetType().GetMethod("Create", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -67,7 +66,7 @@ namespace Refit.Tests
         }
 
         [Fact]
-        public async Task ShouldThrow_WhenMethodIsNotMultiPartRequestWithMultiPartData()
+        public async Task ShouldThrow_WhenMethodIsNotMultiPartButUsedMultiPartData()
         {
             var api = RestService.For<ITestApi3>("http://www.test.com");
 

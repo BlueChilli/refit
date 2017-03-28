@@ -26,6 +26,7 @@ namespace Refit
             }
 
             var methods = batchRequestData.Requests.Select(m => m.Method).ToList();
+            var headers = batchRequestData.Headers;
             var restMethods = this.interfaceHttpMethods.Where(m => methods.Contains(m.Key)).ToDictionary(a => a.Key, a => a.Value);
             var requests = batchRequestData.Requests.ToList();
             var path = request.Path.TrimStartSlash();
@@ -53,7 +54,7 @@ namespace Refit
 
             return async (client, cancellationToken) =>
             {
-                var batchMultipartContent = new MultipartContent("mixed", $"batch_{Guid.NewGuid().ToString()}");
+                var batchMultipartContent = new MultipartContent("mixed", $"----batch_{Guid.NewGuid().ToString()}");
                 var baseUrl = client.BaseAddress.TrimEndSlash() + "/";
 
                 foreach (var r in requests)
@@ -65,6 +66,14 @@ namespace Refit
                 }
 
                 var rq = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(baseUrl), path).AbsoluteUri) { Content = batchMultipartContent };
+
+                if (headers != null && headers.Count > 0)
+                {
+                    foreach (var header in headers)
+                    {
+                        rq.Headers.Add(header.Key, header.Value);
+                    }    
+                }
 
                 var resp = await client.SendAsync(rq, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
 

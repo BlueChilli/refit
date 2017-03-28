@@ -51,6 +51,7 @@ namespace Refit
   
     public interface IBatchRequestBuilder<T> where T : IBatchable
     {
+        IBatchRequestBuilder<T> AddHeader(KeyValuePair<string , string> header);
         IBatchRequestBuilder<T> AddRequest(string methodName, params object[] paramters);
         IBatchRequestBuilder<T> AddRequest<TRes>(Expression<Func<T, TRes>> expression);
         IBatchRequestBuilder<T> AddRequestWithLabel<TRes>(string label , Expression<Func<T, TRes>> expression);

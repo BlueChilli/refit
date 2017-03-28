@@ -72,6 +72,11 @@ namespace Refit
         {
             return source.GetTypeInfo().IsPrimitive;
         }
+
+        public static bool IsEnum(this Type source)
+        {
+            return source.GetTypeInfo().IsEnum;
+        }
     }
 
     [Flags]
@@ -105,6 +110,11 @@ namespace Refit
         public static bool IsPrimitive(this Type source)
         {
             return source.IsPrimitive;
+        }
+
+        public static bool IsEnum(this Type source)
+        {
+            return source.IsEnum;
         }
     }
 #endif

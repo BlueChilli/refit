@@ -262,37 +262,9 @@ namespace Refit
 
         void addMultipartItem(MultipartFormDataContent multiPartContent, string fileName, string parameterName, object itemValue)
         {
-            var streamValue = itemValue as Stream;
-            var stringValue = itemValue as string;
-            var byteArrayValue = itemValue as byte[];
             var multiPartDataValue = itemValue as IPart;
 
-            if (streamValue != null) {
-                var streamContent = new StreamContent(streamValue);
-                multiPartContent.Add(streamContent, parameterName, fileName);
-                return;
-            }
-
-         
-            if (stringValue != null) {
-                multiPartContent.Add(new StringContent(stringValue),  parameterName, fileName);
-                return;
-            }
-
-#if !NETFX_CORE
-            var fileInfoValue = itemValue as FileInfo;
-            if (fileInfoValue != null) {
-                var fileContent = new StreamContent(fileInfoValue.OpenRead());
-                multiPartContent.Add(fileContent, parameterName, fileInfoValue.Name);
-                return;
-            }
-#endif
-
-            if (byteArrayValue != null) {
-                var fileContent = new ByteArrayContent(byteArrayValue);
-                multiPartContent.Add(fileContent, parameterName, fileName);
-                return;
-            }
+            if (AddFileContent(multiPartContent, fileName, parameterName, itemValue)) return;
 
             if (multiPartDataValue != null && multiPartDataValue.Value != null)
             {
@@ -304,10 +276,18 @@ namespace Refit
                 }
                 else
                 {
-                    var obj = new MultiFormDataDictionary(String.Empty, multiPartDataValue.Value, settings);
+                    var obj = new MultiFormDataDictionary(parameterName, multiPartDataValue.Value, settings);
                     foreach (var keyValuePair in obj)
                     {
-                        multiPartContent.Add(new StringContent(keyValuePair.Value), $"\"{keyValuePair.Key}\"");
+                        var val = keyValuePair.Value as string;
+                        if (val != null)
+                        {
+                            multiPartContent.Add(new StringContent(val), $"\"{keyValuePair.Key.Name}\"");
+                        }
+                        else if (AddFileContent(multiPartContent, keyValuePair.Key.FileName, keyValuePair.Key.Name, keyValuePair.Value))
+                        {
+                            // Do nothing;
+                        }
                     }
                 }
 
@@ -316,6 +296,45 @@ namespace Refit
 
 
             throw new ArgumentException($"Unexpected parameter type in a Multipart request. Parameter {fileName} is of type {itemValue.GetType().Name}, whereas allowed types are String, Stream, FileInfo, and Byte array, MultiPartData<T>", nameof(itemValue));
+        }
+
+        private static bool AddFileContent(MultipartFormDataContent multiPartContent, string fileName, string parameterName, object itemValue)
+        {
+            var streamValue = itemValue as Stream;
+            var stringValue = itemValue as string;
+            var byteArrayValue = itemValue as byte[];
+
+            if (streamValue != null)
+            {
+                var streamContent = new StreamContent(streamValue);
+                multiPartContent.Add(streamContent, parameterName, fileName);
+                return true;
+            }
+
+            if (stringValue != null)
+            {
+                multiPartContent.Add(new StringContent(stringValue), parameterName, fileName);
+                return true;
+            }
+
+#if !NETFX_CORE
+            var fileInfoValue = itemValue as FileInfo;
+            if (fileInfoValue != null)
+            {
+                var fileContent = new StreamContent(fileInfoValue.OpenRead());
+                multiPartContent.Add(fileContent, parameterName, fileInfoValue.Name);
+                return true;
+            }
+#endif
+
+            if (byteArrayValue != null)
+            {
+                var fileContent = new ByteArrayContent(byteArrayValue);
+                multiPartContent.Add(fileContent, parameterName, fileName);
+                return true;
+            }
+
+            return false;
         }
 
         public Func<HttpClient, object[], object> BuildRestResultFuncForMethod(string methodName)
