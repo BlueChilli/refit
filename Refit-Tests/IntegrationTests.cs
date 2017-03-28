@@ -81,83 +81,34 @@ namespace Refit.Tests
         Task<HttpResponseMessage> Update(MultiPartData<IdItem> item);
     }
 
-    public class BusinessDto
+    public class BatchUser
     {
-
-        [JsonProperty("id")]
-        public int Id { get; set; }
-
-        [JsonProperty("guid")]
-        public string Guid { get; set; }
-
-        [JsonProperty("logoPath")]
-        public string LogoPath { get; set; }
-
-        [JsonProperty("name")]
-        public string Name { get; set; }
-
-        [JsonProperty("phone")]
-        public string Phone { get; set; }
-
-        [JsonProperty("followedByCount")]
-        public int FollowedByCount { get; set; }
-
-        [JsonProperty("webAddress")]
-        public string WebAddress { get; set; }
-
-    }
-
-    public class ProfileDto
-    {
-
-        [JsonProperty("accountGUID")]
-        public string AccountGUID { get; set; }
-
-        [JsonProperty("isProfileComplete")]
-        public bool IsProfileComplete { get; set; }
-
-        [JsonProperty("profilePhotoPath")]
-        public string ProfilePhotoPath { get; set; }
-
-        [JsonProperty("firstName")]
+        public int CompanyId { get; set; }
+        public string CompanyName { get; set; }
         public string FirstName { get; set; }
-
-        [JsonProperty("lastName")]
         public string LastName { get; set; }
-
-        [JsonProperty("phone")]
-        public string Mobile { get; set; }
-
-        [JsonProperty("email")]
-        public string Email { get; set; }
-
-        [JsonProperty("gender")]
-        public string Gender { get; set; }
-
-        [JsonProperty("ageGroup")]
-        public string AgeGroup { get; set; }
     }
 
-    public interface IBlastMeApi
+    public class Company
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
+    public interface IBatchApi
     {
 
-        [Get("/account/profile")]
-        IObservable<ProfileDto> GetProfile(string userKey);
+        [Post("/users/login")]
+        Task<BatchUser> Login(string userId, string password);
 
-        
-        [Get("/business/{businessId}")]
-        IObservable<BusinessDto> GetBusiness(int businessId);
-
-        [Get("/sentoffer/totalcount")]
-        Task<int> GetNumberSentOfOffers(int status);
-
+        [Get("/company/current")]
+        Task<Company> GetCompany();
     }
     public class AuthHandler : DelegatingHandler
     {
         private readonly string _apikey;
         private readonly string _userkey;
 
-        public AuthHandler(string apikey, string userkey) : base(new HttpClientHandler())
+        public AuthHandler(string apikey, string userkey, CookieContainer container = null) : base(new HttpClientHandler() { CookieContainer = container })
         {
             this._apikey = apikey;
             this._userkey = userkey;
@@ -231,9 +182,9 @@ namespace Refit.Tests
             const string apiKey = "D2FC4BB2-6E9A-4204-9075-013B7C748159";
             const string userKey = "c7334a86-e4ba-454b-b7fa-c0a337a0a21d";
 
-            var url = "https://dev.bluechilli.com/blastme/api";
+            var url = "https://benchon-dev.azurewebsites.net/api/v1";
 
-
+            var container = new CookieContainer();
             var settings = new RefitSettings()
             {
                 JsonSerializerSettings = new JsonSerializerSettings()
@@ -243,7 +194,7 @@ namespace Refit.Tests
                     DateFormatHandling = DateFormatHandling.IsoDateFormat,
                     DateTimeZoneHandling = DateTimeZoneHandling.Utc
                 },
-                HttpMessageHandlerFactory = () => new AuthHandler(apiKey, userKey)
+                HttpMessageHandlerFactory = () => new AuthHandler(apiKey, userKey, container)
             };
 
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11;
