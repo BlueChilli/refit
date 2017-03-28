@@ -61,7 +61,6 @@ namespace Refit
                 var absolutePath = client.BaseAddress.AbsolutePath;
                 var basePath = absolutePath == "/" ? client.BaseAddress.AbsoluteUri : client.BaseAddress.AbsoluteUri.Replace(absolutePath, "");
 
-                var i = 1;
                 foreach (var r in requests)
                 {
                     var requestMessage = r.RequestMessageFactory(client, r.ParameterList);
@@ -69,7 +68,6 @@ namespace Refit
                     requestMessage.RequestUri = new Uri(new Uri(basePath), requestPath);
                     requestMessage.Headers.Add(RequestIdHeaderKey, r.RequestId);
                     batchMultipartContent.Add(new HttpMessageContent(requestMessage));
-                    i++;
                 }
 
                 var rq = new HttpRequestMessage(HttpMethod.Post, new Uri(new Uri(baseUrl), path).AbsoluteUri) { Content = batchMultipartContent };
