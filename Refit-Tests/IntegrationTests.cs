@@ -197,7 +197,7 @@ namespace Refit.Tests
 
         }
 
-        [Fact()]
+        [Fact(Skip = "Please test locally")]
         public async Task MultipartBatchAsyncRequestShouldSucceed()
         {
             const string apiKey = "F5311DE2-6F54-443E-8FC6-863AE944CE4A";
@@ -240,7 +240,7 @@ namespace Refit.Tests
 
         }
 
-        [Fact()]
+        [Fact(Skip = "Please test locally")]
         public async Task MultipartBatchObservableRequestShouldSucceed()
         {
             const string apiKey = "F5311DE2-6F54-443E-8FC6-863AE944CE4A";
