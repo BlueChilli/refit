@@ -146,7 +146,7 @@ namespace Refit.Tests
 
     public class IntegrationTests
     {
-        [Fact]
+        [Fact(Skip = "Please test locally")]
         public async Task ShouldSuccessfullyCallHazardApi()
         {
             const string apiKey = "CF5252EB-4537-4460-A1F6-6D9BF0DBDBFA";
