@@ -77,6 +77,11 @@ namespace Refit
         {
             return source.GetTypeInfo().IsEnum;
         }
+
+        public static IEnumerable<Type> GetInterfaces(this Type source)
+        {
+            return source.GetTypeInfo().ImplementedInterfaces;
+        }
     }
 
     [Flags]
