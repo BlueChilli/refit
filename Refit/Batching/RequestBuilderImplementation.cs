@@ -56,7 +56,7 @@ namespace Refit
 
             return async (client, cancellationToken) =>
             {
-                var batchMultipartContent = new MultipartContent("mixed", $"----batch_{Guid.NewGuid().ToString()}");
+                var batchMultipartContent = new MultipartContent("mixed", "----GreatBatchBoundary");
                 var baseUrl = client.BaseAddress.AbsoluteUri.TrimEndSlash() + "/";
                 var absolutePath = client.BaseAddress.AbsolutePath;
                 var basePath = absolutePath == "/" ? client.BaseAddress.AbsoluteUri : client.BaseAddress.AbsoluteUri.Replace(absolutePath, "");
