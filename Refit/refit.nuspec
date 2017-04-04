@@ -18,7 +18,7 @@
         <dependency id="NETStandard.Library" version="1.6.1" />
         <dependency id="Newtonsoft.Json" version="9.0.1" />
         <dependency id="System.Text.Encodings.Web" version="4.0.0" />
-        <dependency id="WinInsider.System.Net.Http.Formatting" version="1.0.2"/>
+        <dependency id="WinInsider.System.Net.Http.Formatting" version="1.0.4"/>
       </group>
       <group targetFramework="net46">
         <dependency id="Microsoft.AspNetCore.WebUtilities" version="1.0.0" />
