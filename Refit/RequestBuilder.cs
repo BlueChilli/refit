@@ -1,34 +1,28 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Refit
 {
     public interface IRequestBuilder
     {
-        IEnumerable<string> InterfaceHttpMethods { get; }
-        Func<HttpClient, object[], object> BuildRestResultFuncForMethod(string methodName);
+        Func<HttpClient, object[], object> BuildRestResultFuncForMethod(string methodName, Type[] parameterTypes = null, Type[] genericArgumentTypes = null);
         Func<HttpClient, object[], HttpRequestMessage> BuildRequestFuncForMethod(string methodName);
         Func<HttpClient, CancellationToken, Task<IBatchResponse>> BuildRestResultTaskFuncForBatch(IBatchRequest request);
         Func<HttpClient, CancellationToken, IObservable<IBatchResponse>> BuildRestResultRxFuncForBatch(IBatchRequest request);
     }
 
-    interface IRequestBuilderFactory
-    {
-        IRequestBuilder Create(Type interfaceType, RefitSettings settings);
-    }
-
     public static class RequestBuilder
     {
         static readonly IRequestBuilderFactory platformRequestBuilderFactory = new RequestBuilderFactory();
-        
+
         public static IRequestBuilder ForType(Type interfaceType, RefitSettings settings)
         {
             return platformRequestBuilderFactory.Create(interfaceType, settings);
         }
-    
+
         public static IRequestBuilder ForType(Type interfaceType)
         {
             return platformRequestBuilderFactory.Create(interfaceType, null);
@@ -45,7 +39,7 @@ namespace Refit
         }
     }
 
-#if PORTABLE
+#if NETSTANDARD1_1
     class RequestBuilderFactory : IRequestBuilderFactory
     {
         public IRequestBuilder Create(Type interfaceType, RefitSettings settings = null)
@@ -55,4 +49,3 @@ namespace Refit
     }
 #endif
 }
-
