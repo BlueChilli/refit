@@ -77,6 +77,10 @@ namespace Refit.Tests
 
         [Post("/hazards/ack")]
         Task<HttpResponseMessage> Update(MultipartData<IdItem> item);
+
+        [Multipart]
+        [Post("/hazards")]
+        Task<Hazard> Create1(Hazard hazard, FileInfo imageFile);
     }
 
     public class Login
@@ -216,6 +220,65 @@ namespace Refit.Tests
             try
             {
                 var r = await api.Create(MultipartData<Hazard>.Create(hazard));
+                Assert.NotNull(r);
+
+            }
+            catch (ApiException e)
+            {
+              
+                throw new ApplicationException(e.Content);
+            }
+
+        }
+
+        [Fact(Skip = "Please test locally")]
+        public async Task ShouldSuccessfullyCallHazardApiAndUpload()
+        {
+            const string apiKey = "CF5252EB-4537-4460-A1F6-6D9BF0DBDBFA";
+            const string userKey = "0872d545-0639-4847-9dda-bc0e31bd871a";
+
+            var url = "https://dev.bluechilli.com/safetycompass/api";
+
+
+            var settings = new RefitSettings()
+            {
+                JsonSerializerSettings = new JsonSerializerSettings()
+                {
+                    ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                    Converters = { new StringEnumConverter(), new IsoDateTimeConverter() },
+                    DateFormatHandling = DateFormatHandling.IsoDateFormat,
+                    DateTimeZoneHandling = DateTimeZoneHandling.Utc
+                },
+                HttpMessageHandlerFactory = () => new AuthHandler(apiKey, userKey, new CookieContainer())
+            };
+
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11;
+            var api = RestService.For<IHazardApi>(url, settings);
+
+            var hazard = new Hazard()
+            {
+                siteId = 8,
+                name = "BlueChilli",
+                latitude = -33.8716715,
+                longitude = 151.20616129999996,
+                altitude = 24,
+                hazardTypeId = 1,
+                notes = "Lorem ipsum dolor sit amet, ",
+                attachments = new List<Attachment>()
+                {
+                    new Attachment()
+                    {
+                        name = "Attach1",
+                        attachmentType = "VideoLink",
+                        contentPath = "https://www.youtube.com/2945kdf49fk"
+                       
+                    }
+                }
+            };
+
+            try
+            {
+                var r = await api.Create1(hazard,  new FileInfo(@"C:\Temp\messenger-hover.png"));
                 Assert.NotNull(r);
 
             }

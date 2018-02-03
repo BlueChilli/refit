@@ -677,6 +677,14 @@ namespace Refit.Tests
             return (Task<HttpResponseMessage>)func(Client, arguments);
         }
 
+        /// <inheritdoc />
+        public virtual Task<Hazard> Create1(Hazard hazard,FileInfo imageFile)
+        {
+            var arguments = new object[] { hazard,imageFile };
+            var func = methodImpls.GetOrAdd("Create1(Hazard hazard,FileInfo imageFile)", _ => requestBuilder.BuildRestResultFuncForMethod("Create1", new Type[] { typeof(Hazard),typeof(FileInfo) }));
+            return (Task<Hazard>)func(Client, arguments);
+        }
+
 
 
     }

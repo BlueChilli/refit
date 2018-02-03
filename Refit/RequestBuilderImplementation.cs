@@ -779,7 +779,7 @@ namespace Refit
 
             var mimeType =  MimeMapping.GetMimeMapping(fileName);
 
-            if(!String.IsNullOrEmpty(mimeType)) {
+            if(!String.IsNullOrEmpty(mimeType) && !content.Headers.Contains("Content-Type")) {
                 content.Headers.Add("Content-Type", mimeType);
             }
         }
