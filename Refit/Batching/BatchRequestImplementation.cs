@@ -100,8 +100,8 @@ namespace Refit
             {
                 return this;
             }
-
-            var requestFunc = _builder.BuildRequestFuncForMethod(methodName);
+            
+            var requestFunc = _builder.BuildRequestFuncForMethod(methodName, paramters?.Select(m => m.GetType()).ToArray());
 
             if (!String.IsNullOrWhiteSpace(label) && _requests.Any(m => m.Label == label))
             {

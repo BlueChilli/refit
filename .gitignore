@@ -85,3 +85,6 @@ packages/
 *.userprefs
 Refit-Tests/test-results
 /InterfaceStubGenerator.App/Properties/launchSettings.json
+tools/**
+artifacts/**
+!tools/packages.config

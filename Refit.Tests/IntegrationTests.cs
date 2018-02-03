@@ -84,12 +84,36 @@ namespace Refit.Tests
         public string Email { get; set; }
         public string Password { get; set; }
     }
+
+
     public class BatchUser
     {
-        public int CompanyId { get; set; }
-        public string CompanyName { get; set; }
+        [JsonProperty("accountGUID")]
+        public string AccountGUID { get; set; }
+
+        [JsonProperty("isProfileComplete")]
+        public bool IsProfileComplete { get; set; }
+
+        [JsonProperty("profilePhotoPath")]
+        public string ProfilePhotoPath { get; set; }
+
+        [JsonProperty("firstName")]
         public string FirstName { get; set; }
+
+        [JsonProperty("lastName")]
         public string LastName { get; set; }
+
+        [JsonProperty("phone")]
+        public string Phone { get; set; }
+
+        [JsonProperty("email")]
+        public string Email { get; set; }
+
+        [JsonProperty("gender")]
+        public string Gender { get; set; }
+
+        [JsonProperty("ageGroup")]
+        public string AgeGroup { get; set; }
     }
 
     public class PagedList<T>
@@ -107,23 +131,20 @@ namespace Refit.Tests
         public List<T> Data { get; set; }
     }
 
-    public class Company
+    public class ProfileParameter
     {
-        public int Id { get; set; }
-        public string Name { get; set; }
+        public string UserKey { get; set; }
     }
     public interface IBatchApi : IAsyncBatchable, IObservableBatchable
     {
 
-        [Post("/v1/users/login")]
+        [Post("/v1/account/login")]
         Task<BatchUser> Login([Body()] Login login);
 
-        [Get("/v1/company/current")]
-        Task<Company> GetCompany();
-
-        [Get("/v1/users/profile")]
-        Task<BatchUser> GetProfile();
+        [Get("/v1/account/profile")]
+        Task<BatchUser> GetProfile(ProfileParameter parameter);
     }
+
     public class AuthHandler : DelegatingHandler
     {
         private readonly string _apikey;
@@ -146,7 +167,7 @@ namespace Refit.Tests
 
     public class IntegrationTests
     {
-        [Fact(Skip = "Please test locally")]
+        [Fact(/*Skip = "Please test locally"*/)]
         public async Task ShouldSuccessfullyCallHazardApi()
         {
             const string apiKey = "CF5252EB-4537-4460-A1F6-6D9BF0DBDBFA";
@@ -173,7 +194,7 @@ namespace Refit.Tests
             var hazard = new Hazard()
             {
                 siteId = 8,
-                name = "BlueChilli7",
+                name = "BlueChilli",
                 latitude = -33.8716715,
                 longitude = 151.20616129999996,
                 altitude = 24,
@@ -192,18 +213,27 @@ namespace Refit.Tests
                 ImageFile = new FileInfo(@"C:\Temp\messenger-hover.png")
             };
 
-            var r = await api.Create(MultipartData<Hazard>.Create(hazard));
-            Assert.NotNull(r);
+            try
+            {
+                var r = await api.Create(MultipartData<Hazard>.Create(hazard));
+                Assert.NotNull(r);
+
+            }
+            catch (ApiException e)
+            {
+              
+                throw new ApplicationException(e.Content);
+            }
 
         }
 
-        [Fact(Skip = "Please test locally")]
+        [Fact(/*Skip = "Please test locally"*/)]
         public async Task MultipartBatchAsyncRequestShouldSucceed()
         {
-            const string apiKey = "F5311DE2-6F54-443E-8FC6-863AE944CE4A";
-            const string userKey = "c7334a86-e4ba-454b-b7fa-c0a337a0a21d";
+            const string apiKey = "D2FC4BB2-6E9A-4204-9075-013B7C748159";
+            const string userKey = "61e63b10-8054-4cea-8842-689a1b9f687e";
 
-            var url = "https://benchon-dev.azurewebsites.net/api";
+            var url = "https://dev.bluechilli.com/blastme/api";
 
             var container = new CookieContainer();
             var settings = new RefitSettings()
@@ -226,27 +256,29 @@ namespace Refit.Tests
                         Email = "max@bluechilli.com",
                         Password = "123456"
                     }))
-                    .AddRequest(api => api.GetProfile())
-                    .AddRequest(api => api.GetCompany())
+                    .AddRequest(api => api.GetProfile(new ProfileParameter()
+                    {
+                            UserKey = userKey
+                    }))
                     .Build("/$batch/sequential");
 
             var client = RestService.For<IBatchApi>(url, settings);
 
             var r = await client.BatchAsync(req);
             Assert.NotNull(r);
-            var c = r.GetResults<Company>(nameof(IBatchApi.GetCompany)).FirstOrDefault();
+            var c = r.GetResults<BatchUser>(nameof(IBatchApi.GetProfile)).FirstOrDefault();
             Assert.NotNull(c);
-            Assert.Equal("Max Company", c.Value.Name);
+            Assert.Equal("John", c.Value.FirstName);
 
         }
 
-        [Fact(Skip = "Please test locally")]
+        [Fact(/*Skip = "Please test locally"*/)]
         public async Task MultipartBatchObservableRequestShouldSucceed()
         {
-            const string apiKey = "F5311DE2-6F54-443E-8FC6-863AE944CE4A";
-            const string userKey = "c7334a86-e4ba-454b-b7fa-c0a337a0a21d";
+            const string apiKey = "D2FC4BB2-6E9A-4204-9075-013B7C748159";
+            const string userKey = "61e63b10-8054-4cea-8842-689a1b9f687e";
 
-            var url = "https://benchon-dev.azurewebsites.net/api";
+            var url = "https://dev.bluechilli.com/blastme/api";
 
             var container = new CookieContainer();
             var settings = new RefitSettings()
@@ -269,17 +301,19 @@ namespace Refit.Tests
                         Email = "max@bluechilli.com",
                         Password = "123456"
                     }))
-                    .AddRequest(api => api.GetProfile())
-                    .AddRequest(api => api.GetCompany())
+                    .AddRequest(api => api.GetProfile(new ProfileParameter()
+                    {
+                            UserKey = userKey
+                    }))
                     .Build("/$batch/sequential");
 
             var client = RestService.For<IBatchApi>(url, settings);
 
             var r = await client.Batch(req);
             Assert.NotNull(r);
-            var c = r.GetResults<Company>(nameof(IBatchApi.GetCompany)).FirstOrDefault();
+            var c = r.GetResults<BatchUser>(nameof(IBatchApi.GetProfile)).FirstOrDefault();
             Assert.NotNull(c);
-            Assert.Equal("Max Company", c.Value.Name);
+            Assert.Equal("John", c.Value.FirstName);
 
         }
     }

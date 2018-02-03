@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace Refit
 {
@@ -20,25 +21,24 @@ namespace Refit
                 throw new ArgumentNullException(nameof(request));
             }
 
-            var batchRequestData = request as BatchRequest;
-
-            if (batchRequestData == null)
+            if (!(request is BatchRequest batchRequestData))
             {
                 throw new ArgumentNullException(nameof(request));
             }
 
             var methods = batchRequestData.Requests.Select(m => m.Method).ToList();
             var headers = batchRequestData.Headers;
-            var restMethods = this.interfaceHttpMethods.Where(m => methods.Contains(m.Key)).ToDictionary(a => a.Key, a => a.Value);
             var requests = batchRequestData.Requests.ToList();
             var path = request.Path.TrimStartSlash();
             var refitSettings = batchRequestData.RefitSettings ?? this.settings;
             var responses = batchRequestData.CreateBatchResponse();
             var taskFuncs = new List<MulticastDelegate>();
+            var restMethods = new Dictionary<RequestInfo, RestMethodInfo>();
 
             foreach (var req in requests)
             {
-                var restMethod = restMethods[req.Method];
+                var restMethod = FindMatchingRestMethodInfo(req.Method, req.ParameterList?.Select(m => m.GetType()).ToArray(), null);
+                restMethods.Add(req, restMethod);
 
                 if (restMethod.ReturnType == typeof(Task))
                 {
@@ -84,7 +84,7 @@ namespace Refit
 
                 if (!resp.IsSuccessStatusCode)
                 {
-                    throw await ApiException.Create(rq.RequestUri, HttpMethod.Post, resp, refitSettings).ConfigureAwait(false);
+                    throw await ApiException.Create(rq, HttpMethod.Post, resp, refitSettings).ConfigureAwait(false);
                 }
 
                 var contents = await resp.Content.ReadAsMultipartAsync(cancellationToken).ConfigureAwait(false);
@@ -97,17 +97,17 @@ namespace Refit
                     {
                         var requestId = res.Headers.GetValues(RequestIdHeaderKey).FirstOrDefault();
                         var req = requests.FirstOrDefault(m => m.RequestId == requestId);
-                        var restMethod = restMethods[req.Method];
+                        var restMethod = restMethods[req];
                         var indexId = requests.IndexOf(req);
                         var taskFunc = taskFuncs[indexId];
-                        var result = await ((Task<RestResult>)taskFunc.DynamicInvoke(rq.RequestUri, res, restMethod, req.Label)).ConfigureAwait(false);
+                        var result = await ((Task<RestResult>)taskFunc.DynamicInvoke(rq, res, restMethod, req.Label)).ConfigureAwait(false);
                         result.Index = indexId;
                         items.Add(result);
                     }
                     else
                     {
                         // this should never happens
-                        throw new ArgumentException($"RequestId is not in the response header. Sorry can not parse it !!!! Please check that you are sending requesetId in request Header.");
+                        throw new ArgumentException($"RequestId is not in the response header. Sorry can not parse it !!!! Please check that you are sending requestId in request Header.");
                     }
 
                 }
@@ -136,14 +136,65 @@ namespace Refit
             };
         }
 
-        private Func<Uri, HttpResponseMessage, RestMethodInfo, string, Task<RestResult>> GetVoidResponseResolver()
+        private Func<HttpRequestMessage, HttpResponseMessage, RestMethodInfo, string, Task<RestResult>> GetVoidResponseResolver()
         {
             return ResolveResponseTo;
         }
 
-        private Func<Uri, HttpResponseMessage, RestMethodInfo, string, Task<RestResult>> GetResponseResolver<T>()
+        private Func<HttpRequestMessage, HttpResponseMessage, RestMethodInfo, string, Task<RestResult>> GetResponseResolver<T>()
         {
             return ResolveResponseTo<T>;
+        }
+
+         private async Task<RestResult> ResolveResponseTo(HttpRequestMessage req, HttpResponseMessage resp, RestMethodInfo restMethod, string label = null)
+        {
+            if (!resp.IsSuccessStatusCode)
+            {
+                var ex = await ApiException.Create(req, restMethod.HttpMethod, resp, restMethod.RefitSettings).ConfigureAwait(false);
+                return RestResult<Unit>.AsError(restMethod.Name, ex, label);
+            }
+
+            return RestResult<Unit>.AsSuccess(restMethod.Name, Unit.Default, label);
+        }
+        private async Task<RestResult> ResolveResponseTo<T>(HttpRequestMessage req, HttpResponseMessage resp, RestMethodInfo restMethod, string label = null)
+        {
+            try
+            {
+               
+                if (restMethod.SerializedReturnType == typeof(HttpResponseMessage))
+                {
+                    // NB: This double-casting manual-boxing hate crime is the only way to make 
+                    // this work without a 'class' generic constraint. It could blow up at runtime 
+                    // and would be A Bad Idea if we hadn't already vetted the return type.
+                    return RestResult<T>.AsSuccess(restMethod.Name, (T)(object)resp, label);
+                }
+
+                if (!resp.IsSuccessStatusCode)
+                {
+                    var ex = await ApiException.Create(req, restMethod.HttpMethod, resp, restMethod.RefitSettings).ConfigureAwait(false);
+                    return RestResult<T>.AsError(restMethod.Name, ex, label);
+                }
+
+                if (restMethod.SerializedReturnType == typeof(HttpContent))
+                {
+                    return RestResult<T>.AsSuccess(restMethod.Name, (T)(object)resp.Content, label);
+                }
+
+                var content = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                if (restMethod.SerializedReturnType == typeof(string))
+                {
+                    return RestResult<T>.AsSuccess(restMethod.Name, (T)(object)content, label);
+                }
+
+                return RestResult<T>.AsSuccess(restMethod.Name, JsonConvert.DeserializeObject<T>(content, settings.JsonSerializerSettings), label);
+
+            }
+            catch (Exception e)
+            {
+                return RestResult<T>.AsError(restMethod.Name, e);
+            }
+           
         }
 
     }

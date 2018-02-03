@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Collections.Generic;
 using System.IO;
@@ -154,41 +155,48 @@ namespace Refit
             return (client, args) => rxFunc.DynamicInvoke(client, args); 
         }
 
+        public Func<HttpClient, object[], HttpRequestMessage> BuildRequestFuncForMethod(string methodName, Type[] parameterTypes, Type[] genericArgumentTypes = null)
+        {
+            if (!interfaceHttpMethods.ContainsKey(methodName))
+            {
+                throw new ArgumentException("Method must be defined and have an HTTP Method attribute");
+            }
+
+            var restMethod = FindMatchingRestMethodInfo(methodName, parameterTypes, genericArgumentTypes);
+
+            return (client, paramList) => this.BuildRequestFactoryForMethod(restMethod, client.BaseAddress.AbsolutePath, restMethod.CancellationToken != null)(paramList);
+           
+        }
+
         void AddMultipartItem(MultipartFormDataContent multiPartContent, string fileName, string parameterName, object itemValue)
         {
+            if (AddFileContent(multiPartContent, fileName, parameterName, itemValue)) return;
 
-            if (itemValue is MultipartItem multipartItem) 
+            if (itemValue is IPart multiPartDataValue)
             {
-                var httpContent = multipartItem.ToContent();
-                multiPartContent.Add(httpContent, parameterName, string.IsNullOrEmpty(multipartItem.FileName) ? fileName : multipartItem.FileName);
+                if (multiPartDataValue.Value is HttpContent httpContentParam)
+                {
+                    multiPartContent.Add(httpContentParam, parameterName);
+                }
+                else
+                {
+                    var obj = new MultipartFormDataDictionary(parameterName, multiPartDataValue.Value, settings);
+                    foreach (var keyValuePair in obj)
+                    {
+                        if (keyValuePair.Value is string val)
+                        {
+                            multiPartContent.Add(new StringContent(val), $"\"{keyValuePair.Key.Name}\"");
+                        }
+                        else if (AddFileContent(multiPartContent, keyValuePair.Key.FileName, keyValuePair.Key.Name, keyValuePair.Value))
+                        {
+                            // Do nothing;
+                        }
+                    }
+                }
+
                 return;
             }
 
-            if (itemValue is Stream streamValue)
-            {
-                var streamContent = new StreamContent(streamValue);
-                multiPartContent.Add(streamContent, parameterName, fileName);
-                return;
-            }
-
-            if (itemValue is string stringValue) 
-            {
-                multiPartContent.Add(new StringContent(stringValue), parameterName);
-                return;
-            }
-
-            if (itemValue is FileInfo fileInfoValue)
-            {
-                var fileContent = new StreamContent(fileInfoValue.OpenRead());
-                multiPartContent.Add(fileContent, parameterName, fileInfoValue.Name);
-                return;
-            }
-
-            if (itemValue is byte[] byteArrayValue) {
-                var fileContent = new ByteArrayContent(byteArrayValue);
-                multiPartContent.Add(fileContent, parameterName, fileName);
-                return;
-            }
 
             // Fallback to Json
             Exception e = null;
@@ -205,6 +213,48 @@ namespace Refit
             }
 
             throw new ArgumentException($"Unexpected parameter type in a Multipart request. Parameter {fileName} is of type {itemValue.GetType().Name}, whereas allowed types are String, Stream, FileInfo, Byte array and anything that's JSON serializable", nameof(itemValue), e);
+        }
+
+        private static bool AddFileContent(MultipartFormDataContent multiPartContent, string fileName, string parameterName, object itemValue)
+        {
+            if (itemValue is MultipartItem multipartItem)
+            {
+                var httpContent = multipartItem.ToContent();
+                AddMimeTypeFromFileName(httpContent, string.IsNullOrEmpty(multipartItem.FileName) ? fileName : multipartItem.FileName);
+                multiPartContent.Add(httpContent, parameterName, string.IsNullOrEmpty(multipartItem.FileName) ? fileName : multipartItem.FileName);
+                return true;
+            }
+
+            if (itemValue is Stream streamValue)
+            {
+                var streamContent = new StreamContent(streamValue);
+                multiPartContent.Add(streamContent, parameterName, fileName);
+                return true;
+            }
+
+            if (itemValue is string stringValue)
+            {
+                multiPartContent.Add(new StringContent(stringValue), parameterName);
+                return true;
+            }
+
+            if (itemValue is FileInfo fileInfoValue)
+            {
+                var fileContent = new StreamContent(fileInfoValue.OpenRead());
+                AddMimeTypeFromFileName(fileContent, fileInfoValue.Name);
+                multiPartContent.Add(fileContent, parameterName, fileInfoValue.Name);
+                return true;
+            }
+
+            if (itemValue is byte[] byteArrayValue)
+            {
+                var fileContent = new ByteArrayContent(byteArrayValue);
+                AddMimeTypeFromFileName(fileContent, fileName);
+                multiPartContent.Add(fileContent, parameterName, fileName);
+                return true;
+            }
+
+            return false;
         }
 
         Func<HttpClient, CancellationToken, object[], Task<T>> BuildCancellableTaskFuncForMethod<T>(RestMethodInfo restMethod)
@@ -380,7 +430,16 @@ namespace Refit
 
         Func<object[], HttpRequestMessage> BuildRequestFactoryForMethod(RestMethodInfo restMethod, string basePath, bool paramsContainsCancellationToken)
         {
-           
+            if (!interfaceHttpMethods.ContainsKey(restMethod.Name)) {
+                throw new ArgumentException("Method must be defined and have an HTTP Method attribute");
+            }
+            
+            if (!restMethod.IsMultipart && 
+                restMethod.ParameterInfoMap.Any(m => m.Value.ParameterType.IsAssignableTo(typeof(IPart))))
+            {
+                throw new ArgumentException("MultipartData must be used with MultPart attribute");
+            }
+
             return paramList =>
             {
                 // make sure we strip out any cancelation tokens
@@ -524,18 +583,16 @@ namespace Refit
                     // Check to see if it's an IEnumerable
                     var itemValue = paramList[i];
                     var enumerable = itemValue as IEnumerable<object>;
-                    var typeIsCollection = false;
-
-                    if (enumerable != null)
-                    {
-                        typeIsCollection = true;
-                    }
+                    var typeIsCollection = enumerable != null;
 
                     if (typeIsCollection)
                     {
+                        var itemId = 0;
                         foreach (var item in enumerable)
                         {
-                            AddMultipartItem(multiPartContent, itemName, parameterName, item);
+                            var paramName = $"{parameterName}[{itemId}]";
+                            AddMultipartItem(multiPartContent, itemName, paramName, item);
+                            itemId++;
                         }
                     }
                     else
@@ -708,9 +765,22 @@ namespace Refit
 
             // Don't even bother trying to add the header as a content header
             // if we just added it to the other collection.
-            if (!added && request.Content != null)
+            if (!added)
             {
-                request.Content.Headers.TryAddWithoutValidation(name, value);
+                request.Content?.Headers.TryAddWithoutValidation(name, value);
+            }
+        }
+
+        private static void AddMimeTypeFromFileName(HttpContent content, string fileName)
+        {
+            if (String.IsNullOrEmpty(fileName)) {
+                return;
+            }
+
+            var mimeType =  MimeMapping.GetMimeMapping(fileName);
+
+            if(!String.IsNullOrEmpty(mimeType)) {
+                content.Headers.Add("Content-Type", mimeType);
             }
         }
     }

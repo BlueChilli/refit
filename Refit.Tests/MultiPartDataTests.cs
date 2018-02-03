@@ -70,7 +70,7 @@ namespace Refit.Tests
         {
             var api = RestService.For<ITestApi3>("http://www.test.com");
 
-            await Assert.ThrowsAsync<ArgumentException>(async () => await api.ChangeTask(MultipartData<TestObject>.Create(new TestObject())));
+            await Assert.ThrowsAsync<ArgumentException>(async () => await api.ChangeTask(MultipartData<TestApiObject>.Create(new TestApiObject())));
         }
 
     }

@@ -18,11 +18,13 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.4' ">
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="1.1.2" />
     <PackageReference Include="System.Reflection.TypeExtensions" Version="4.4.0" />
+    <PackageReference Include="WinInsider.System.Net.Http.Formatting" Version="1.0.5" />
   </ItemGroup>
   
   <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
     <Reference Include="System.Web" />
     <Reference Include="System.Net.Http" />
+    <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.3" />
   </ItemGroup>
 
   <ItemGroup Label="Package">

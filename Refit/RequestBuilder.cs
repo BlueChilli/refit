@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Refit
@@ -9,7 +10,7 @@ namespace Refit
     public interface IRequestBuilder
     {
         Func<HttpClient, object[], object> BuildRestResultFuncForMethod(string methodName, Type[] parameterTypes = null, Type[] genericArgumentTypes = null);
-        Func<HttpClient, object[], HttpRequestMessage> BuildRequestFuncForMethod(string methodName);
+        Func<HttpClient, object[], HttpRequestMessage> BuildRequestFuncForMethod(string methodName, Type[] parameterTypes, Type[] genericArgumentTypes = null);
         Func<HttpClient, CancellationToken, Task<IBatchResponse>> BuildRestResultTaskFuncForBatch(IBatchRequest request);
         Func<HttpClient, CancellationToken, IObservable<IBatchResponse>> BuildRestResultRxFuncForBatch(IBatchRequest request);
     }

@@ -14,6 +14,7 @@ namespace Refit.Tests
     {
         public string Name { get; set; }
         public string SomeText { get; set; }
+        public int Id { get; set; }
     }
     public interface ITestApi : IAsyncBatchable
     {
@@ -28,10 +29,10 @@ namespace Refit.Tests
         Task GetHello(string id);
 
         [Get("/sometest")]
-        Task<TestApiObject> SomeTest(TestObject obj);
+        Task<TestApiObject> SomeTest(TestApiObject obj);
 
         [Post("/sometest")]
-        Task SomeTestPost(TestObject obj);
+        Task SomeTestPost(TestApiObject obj);
     }
 
     public interface ITestApi2 : IBatchable
@@ -43,7 +44,7 @@ namespace Refit.Tests
     public interface ITestApi3
     {
         [Post("/")]
-        Task<string> ChangeTask([Body] MultipartData<TestObject> testObject);
+        Task<string> ChangeTask([Body] MultipartData<TestApiObject> testObject);
 
     }
 
@@ -68,18 +69,18 @@ namespace Refit.Tests
         [Fact]
         public void AddRequest_CanAdd_Request()
         {
-            var testObj = new TestObject() { Name = "hello", Id = 20 };
+            var testObj = new TestApiObject() { Name = "hello", Id = 20 };
             var builder = BatchRequestBuilder.For<ITestApi>();
             var r = builder
                     .AddRequest(nameof(ITestApi.UploadFileInfo2), null)
                     .AddRequest(api => api.Hello("Hello"))
                     .AddRequest(api => api.Hello("hello2"))
                     .AddRequest(api => api.SomeTest(testObj))
-                    .AddRequest(api => api.SomeTestPost(new TestObject() { Name = "hello", Id = 20 }))
+                    .AddRequest(api => api.SomeTestPost(new TestApiObject() { Name = "hello", Id = 20 }))
                     .Build() as BatchRequest;
 
             Assert.Equal(5, r.Requests.Count);
-            Assert.IsType<TestObject>(r.Requests[4].ParameterList[0]);
+            Assert.IsType<TestApiObject>(r.Requests[4].ParameterList[0]);
         }
 
         [Fact]
