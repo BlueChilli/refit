@@ -23,22 +23,17 @@ var octocat = await gitHubApi.GetUser("octocat");
 
 ### Where does this work?
 
-Refit currently supports the following platforms and any .NET Standard 1.3 target:
+Refit currently supports the following platforms and any .NET Standard 1.4 target:
 
+* UWP
 * Xamarin.Android
 * Xamarin.Mac
-* Xamarin.iOS 64-bit (Unified API)
+* Xamarin.iOS 
 * Desktop .NET 4.5 
-* Windows Store 8.1+
-* Windows Phone 8.1 Universal Apps
 * .NET Core
 
-The following platforms are not supported:
-
-* Xamarin.iOS 32-bit - build system doesn't support targets files
-
 #### Note about .NET Core
-For .NET Core support, you must use a `csproj` type of project to host your Refit interfaces. This is because `xproj` cannot do compile-time code generation that's not included in the project file. If you are using `xproj` for either a website, class library, or application, you can still use Refit by creating a `netstandard` `csproj` and then using a project-to-project reference from your `xproj` to your `csproj`. This workaround won't be necessary once "VS 15" and the final .NET Core tooling ships.
+For .NET Core build-time support, you must use the .NET Core 2 SDK. You can target any supported platform in your library, long as the 2.0+ SDK is used at build-time.
 
 ### API Attributes
 
@@ -83,6 +78,40 @@ Task<List<User>> GroupList([AliasAs("id")] int groupId, [AliasAs("sort")] string
 GroupList(4, "desc");
 >>> "/group/4/users?sort=desc"
 ```
+### Dynamic Querystring Parameters
+
+If you specify an `object` as a query parameter, all public properties which are not null are used as query parameters. 
+Use the `Query` attribute the change the behavior to 'flatten' your query parameter object. If using this Attribute you can specify values for the Delimiter and the Prefix which are used to 'flatten' the object.
+
+```csharp
+public class MyQueryParams
+{
+    [AliasAs("order")]
+    public string SortOrder { get; set; }
+
+    public int Limit { get; set; }
+}
+
+
+[Get("/group/{id}/users")]
+Task<List<User>> GroupList([AliasAs("id")] int groupId, MyQueryParams params);
+
+[Get("/group/{id}/users")]
+Task<List<User>> GroupListWithAttribute([AliasAs("id")] int groupId, [Query(".","search")] MyQueryParams params);
+
+
+params.SortOrder = "desc";
+params.Limit = 10;
+
+GroupList(4, params)
+>>> "/group/4/users?order=desc&Limit=10"
+
+GroupListWithAttribute(4, params)
+>>> "/group/4/users?search.order=desc&search.Limit=10"
+```
+
+A similar behavior exists if using a Dictionary, but without the advantages of the `AliasAs` attributes and of course no intellisense and/or type safety.
+
 
 ### Body content
 
@@ -102,6 +131,19 @@ type of the parameter:
 * If the parameter has the attribute `[Body(BodySerializationMethod.UrlEncoded)]`, 
   the content will be URL-encoded (see [form posts](#form-posts) below)
 * For all other types, the object will be serialized as JSON.
+
+#### Buffering and the `Content-Length` header
+
+By default, Refit streams the body content without buffering it. This means you can
+stream a file from disk, for example, without incurring the overhead of loading 
+the whole file into memory. The downside of this is that no `Content-Length` header 
+is set _on the request_. If your API needs you to send a `Content-Length` header with
+the request, you can disable this streaming behavior by setting the `buffered` argument 
+of the `[Body]` attribute to `true`:
+
+```csharp
+Task CreateUser([Body(buffered: true)] User user);
+```
 
 #### JSON content
 
@@ -219,6 +261,23 @@ var measurement = new Measurement {
 await api.Collect(measurement);
 ``` 
 
+If you have a type that has `[JsonProperty(PropertyName)]` attributes setting property aliases, Refit will use those too (`[AliasAs]` will take precedence where you have both). 
+This means that the following type will serialize as `one=value1&two=value2`:
+
+```csharp
+
+public class SomeObject
+{
+    [JsonProperty(PropertyName = "one")]
+    public string FirstProperty { get; set; }
+
+    [JsonProperty(PropertyName = "notTwo")]
+    [AliasAs("two")]
+    public string SecondProperty { get; set; }
+}
+
+```
+
 ### Setting request headers
 
 #### Static headers
@@ -302,7 +361,7 @@ class LoginViewModel
 	AuthenticationContext context = new AuthenticationContext(...);
 	private async Task<string> GetToken()
     {
-		// The AquireTokenAsync call will prompt with a UI if necessary
+		// The AcquireTokenAsync call will prompt with a UI if necessary
 		// Or otherwise silently use a refresh token to return
 		// a valid access token	
         var token = await context.AcquireTokenAsync("http://my.service.uri/app", "clientId", new Uri("callback://complete"));
@@ -414,17 +473,27 @@ At this time, multipart methods support the following parameter types:
  - Stream
  - FileInfo
 
-For byte array and Stream parameters, use `AttachmentName` parameter attribute to specify the
-name for the attachment. For `FileInfo` parameters, the file name will be used.
+The parameter name will be used as the name of the field in the multipart data. This can be overridden with the `AliasAs` attribute.
+
+To specify the file name and content type for byte array (`byte[]`), `Stream` and `FileInfo` parameters, use of a wrapper class is required.
+The wrapper classes for these types are `ByteArrayPart`, `StreamPart` and `FileInfoPart`.
 
 ```csharp
 public interface ISomeApi
 {
     [Multipart]
     [Post("/users/{id}/photo")]
-    Task UploadPhoto(int id, [AttachmentName("photo.jpg")] Stream stream);
+    Task UploadPhoto(int id, [AliasAs("myPhoto")] StreamPart stream);
 }
 ```
+
+To pass a Stream to this method, construct a StreamPart object like so:
+
+```csharp
+someApiInstance.UploadPhoto(id, new StreamPart(myPhotoStream, "photo.jpg", "image/jpeg"));
+```
+
+Note: The AttachmentName attribute that was previously described in this section has been deprecated and its use is not recommended.
 
 ### Retrieving the response
 
@@ -469,7 +538,7 @@ When using something like ASP.NET Web API, it's a fairly common pattern to have 
 public interface IReallyExcitingCrudApi<T, in TKey> where T : class
 {
     [Post("")]
-    Task<T> Create([Body] T paylod);
+    Task<T> Create([Body] T payload);
 
     [Get("")]
     Task<List<T>> ReadAll();
