@@ -84,8 +84,8 @@ var teamCity = BuildSystem.TeamCity;
 var branch = EnvironmentVariable("Git_Branch");
 var isPullRequest = !String.IsNullOrEmpty(branch) && branch.ToLower().Contains("refs/pull");
 var projectName =  EnvironmentVariable("TEAMCITY_PROJECT_NAME"); //  teamCity.Environment.Project.Name;
-var isRepository = StringComparer.OrdinalIgnoreCase.Equals(productName, projectName);
-var isTagged = !String.IsNullOrEmpty(branch) && branch.ToUpper().Contains("TAGS");
+var isRepository = true;
+var isTagged = !String.IsNullOrEmpty(branch) && branch.ToUpper().Contains("refs/tag");
 var buildConfName = EnvironmentVariable("TEAMCITY_BUILDCONF_NAME"); //teamCity.Environment.Build.BuildConfName
 var buildNumber = GetEnvironmentInteger("BUILD_NUMBER");
 var isReleaseBranch = StringComparer.OrdinalIgnoreCase.Equals("master", buildConfName)|| StringComparer.OrdinalIgnoreCase.Equals("release", buildConfName);
@@ -124,6 +124,8 @@ Action SetGitVersionData = () => {
 		buildVersion = "alpha";
 	}
 };
+
+nugetVersion = "4.2.1";
 
 SetGitVersionData();
 var copyright = config.Value<string>("copyright");
@@ -206,11 +208,12 @@ Action<string> build = (solution) =>
 					settings.WithTarget("restore;pack");
 				}
 
+				Information("Package Version: {0}", nugetVersion.ToString());		
 				settings
 				.WithProperty("PackageOutputPath",  MakeAbsolute(Directory(artifactDirectory)).ToString())
     			.WithProperty("NoWarn", "1591") // ignore missing XML doc warnings
 				.WithProperty("TreatWarningsAsErrors", treatWarningsAsErrors.ToString())
-			    .WithProperty("Version", nugetVersion.ToString())
+			    //.WithProperty("Version", nugetVersion.ToString())
 			    // .WithProperty("Authors",  "\"" + string.Join(" ", authors) + "\"")
 			    // .WithProperty("Copyright",  "\"" + copyright + "\"")
 			    // .WithProperty("PackageProjectUrl",  "\"" + githubUrl + "\"")

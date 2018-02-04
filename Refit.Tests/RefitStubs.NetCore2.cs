@@ -22,7 +22,9 @@ using System.Reactive.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using RichardSzalay.MockHttp;
+using System.Net.Http.Headers;
 using System.Threading;
+using System.Web;
 using Newtonsoft.Json.Converters;
 using static System.Math;
 using SomeType =  CollisionA.SomeType;
@@ -273,6 +275,22 @@ namespace Refit.Tests
         {
             var arguments = new object[] { parameter };
             var func = methodImpls.GetOrAdd("GetProfile(ProfileParameter parameter)", _ => requestBuilder.BuildRestResultFuncForMethod("GetProfile", new Type[] { typeof(ProfileParameter) }));
+            return (Task<BatchUser>)func(Client, arguments);
+        }
+
+        /// <inheritdoc />
+        public virtual Task<BatchUser> UpdateProfile(MultipartData<UpdateProfile> parameters)
+        {
+            var arguments = new object[] { parameters };
+            var func = methodImpls.GetOrAdd("UpdateProfile(MultipartData<UpdateProfile> parameters)", _ => requestBuilder.BuildRestResultFuncForMethod("UpdateProfile", new Type[] { typeof(MultipartData<UpdateProfile>) }));
+            return (Task<BatchUser>)func(Client, arguments);
+        }
+
+        /// <inheritdoc />
+        public virtual Task<BatchUser> UpdateProfileAlternate(UpdateProfile parameters,FileInfo profilePhotoFile)
+        {
+            var arguments = new object[] { parameters,profilePhotoFile };
+            var func = methodImpls.GetOrAdd("UpdateProfileAlternate(UpdateProfile parameters,FileInfo profilePhotoFile)", _ => requestBuilder.BuildRestResultFuncForMethod("UpdateProfileAlternate", new Type[] { typeof(UpdateProfile),typeof(FileInfo) }));
             return (Task<BatchUser>)func(Client, arguments);
         }
 

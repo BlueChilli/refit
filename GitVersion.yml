@@ -1,7 +1,19 @@
 assembly-versioning-scheme: None
-next-version: 1.0.0
+next-version: 4.2.1
 branches:
   master:
+    mode: ContinuousDelivery
+    tag:
+    increment: Patch
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+  release:
+    mode: ContinuousDelivery
+    tag:
+    increment: Patch
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+  batching:
     mode: ContinuousDelivery
     tag:
     increment: Patch

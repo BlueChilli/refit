@@ -4,10 +4,12 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Reactive.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
@@ -68,7 +70,6 @@ namespace Refit.Tests
     public interface IHazardApi
     {
         [Multipart]
-        [Headers("Accept: */*")]
         [Post("/hazards")]
         Task<Hazard> Create(MultipartData<Hazard> hazard);
 
@@ -112,12 +113,6 @@ namespace Refit.Tests
 
         [JsonProperty("email")]
         public string Email { get; set; }
-
-        [JsonProperty("gender")]
-        public string Gender { get; set; }
-
-        [JsonProperty("ageGroup")]
-        public string AgeGroup { get; set; }
     }
 
     public class PagedList<T>
@@ -139,6 +134,17 @@ namespace Refit.Tests
     {
         public string UserKey { get; set; }
     }
+
+    public class UpdateProfile
+    {
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string Phone { get; set; }
+        public string Email { get; set; }
+        public FileInfo ProfilePhotoFile { get; set; }
+        public string UserKey { get; set; }
+    }
+
     public interface IBatchApi : IAsyncBatchable, IObservableBatchable
     {
 
@@ -147,6 +153,14 @@ namespace Refit.Tests
 
         [Get("/v1/account/profile")]
         Task<BatchUser> GetProfile(ProfileParameter parameter);
+
+        [Multipart]
+        [Post("/v1/account/profile")]
+        Task<BatchUser> UpdateProfile(MultipartData<UpdateProfile> parameters);
+
+        [Multipart]
+        [Post("/v1/account/profile")]
+        Task<BatchUser> UpdateProfileAlternate(UpdateProfile parameters, [AliasAs("profilePhotoFile")] FileInfoPart profilePhotoFile);
     }
 
     public class AuthHandler : DelegatingHandler
@@ -154,7 +168,7 @@ namespace Refit.Tests
         private readonly string _apikey;
         private readonly string _userkey;
 
-        public AuthHandler(string apikey, string userkey, CookieContainer container = null) : base(new HttpClientHandler() { CookieContainer = container })
+        public AuthHandler(string apikey, string userkey, CookieContainer container = null) : base(new HttpClientHandler() { CookieContainer = container})
         {
             this._apikey = apikey;
             this._userkey = userkey;
@@ -164,14 +178,14 @@ namespace Refit.Tests
         {
             request.Headers.Add("ApiKey", _apikey);
             request.Headers.Add("UserKey", _userkey);
-
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
             return base.SendAsync(request, cancellationToken);
         }
     }
 
     public class IntegrationTests
     {
-        [Fact(/*Skip = "Please test locally"*/)]
+        [Fact(Skip = "Please test locally")]
         public async Task ShouldSuccessfullyCallHazardApi()
         {
             const string apiKey = "CF5252EB-4537-4460-A1F6-6D9BF0DBDBFA";
@@ -217,17 +231,8 @@ namespace Refit.Tests
                 ImageFile = new FileInfo(@"C:\Temp\messenger-hover.png")
             };
 
-            try
-            {
-                var r = await api.Create(MultipartData<Hazard>.Create(hazard));
-                Assert.NotNull(r);
-
-            }
-            catch (ApiException e)
-            {
-              
-                throw new ApplicationException(e.Content);
-            }
+            var r = await api.Create(MultipartData<Hazard>.Create(hazard));
+            Assert.NotNull(r);
 
         }
 
@@ -276,17 +281,48 @@ namespace Refit.Tests
                 }
             };
 
-            try
-            {
-                var r = await api.Create1(hazard,  new FileInfo(@"C:\Temp\messenger-hover.png"));
-                Assert.NotNull(r);
+            var r = await api.Create1(hazard,  new FileInfo(@"C:\Temp\messenger-hover.png"));
+            Assert.NotNull(r);
+        }
 
-            }
-            catch (ApiException e)
+        [Fact(/*Skip = "Please test locally"*/)]
+        public async Task ShouldSuccessfullyUpdateProfleWithImage()
+        {
+            const string apiKey = "D2FC4BB2-6E9A-4204-9075-013B7C748159";
+            const string userKey = "61e63b10-8054-4cea-8842-689a1b9f687e";
+
+            var url = "https://dev.bluechilli.com/blastme/api";
+           // var url = "https://local.bluechilli.com/blastme/api";
+
+            var container = new CookieContainer();
+            var settings = new RefitSettings()
             {
-              
-                throw new ApplicationException(e.Content);
-            }
+                    JsonSerializerSettings = new JsonSerializerSettings()
+                    {
+                            ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                            Converters = { new StringEnumConverter(), new IsoDateTimeConverter() },
+                            DateFormatHandling = DateFormatHandling.IsoDateFormat,
+                            DateTimeZoneHandling = DateTimeZoneHandling.Utc
+                    },
+                    HttpMessageHandlerFactory = () => new AuthHandler(apiKey, userKey, container)
+            };
+
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11;
+            var api = RestService.For<IBatchApi>(url, settings);
+
+         
+            var parameters = new UpdateProfile()
+            {
+                FirstName = "John",
+                LastName =  "Smith1",
+                Phone = "0422172839",
+                Email = "max@bluechilli.com",
+                UserKey = userKey,
+                ProfilePhotoFile = new FileInfo(@"C:\Temp\messenger-hover.png")
+            };
+
+            var r = await api.UpdateProfile(MultipartData<UpdateProfile>.Create(parameters));
+            Assert.NotNull(r);
 
         }
 
@@ -297,6 +333,7 @@ namespace Refit.Tests
             const string userKey = "61e63b10-8054-4cea-8842-689a1b9f687e";
 
             var url = "https://dev.bluechilli.com/blastme/api";
+           // var url = "https://local.bluechilli.com/blastme/api";
 
             var container = new CookieContainer();
             var settings = new RefitSettings()
@@ -342,6 +379,7 @@ namespace Refit.Tests
             const string userKey = "61e63b10-8054-4cea-8842-689a1b9f687e";
 
             var url = "https://dev.bluechilli.com/blastme/api";
+            //var url = "https://local.bluechilli.com/blastme/api";
 
             var container = new CookieContainer();
             var settings = new RefitSettings()

@@ -437,7 +437,7 @@ namespace Refit
             if (!restMethod.IsMultipart && 
                 restMethod.ParameterInfoMap.Any(m => m.Value.ParameterType.IsAssignableTo(typeof(IPart))))
             {
-                throw new ArgumentException("MultipartData must be used with MultPart attribute");
+                throw new ArgumentException("MultipartData must be used with MultiPart attribute");
             }
 
             return paramList =>
